@@ -11,6 +11,8 @@
 - Kekerasan 100 125 150 175 200 persen plus boost gain native, getar bisa mati hidup per pengingat dan default.
 - Setting: minta izin notifikasi sistem plus status real, play stop di semua layar suara.
 - Ekspor catatan: PNG JPG JPEG plus pixel Low Normal High XHigh anti burik, PDF, simpan ke galeri.
+- Catatan: grup Disematkan Hari ini Kemarin Sebelumnya, sematkan via tahan atau tombol, urut baru atau lama, buka lagi selalu muat plus tangani bila terhapus.
+- Izin notifikasi otomatis: diminta sendiri tepat setelah onboarding plus sekali lagi saat masuk setup notifikasi bila masih mati.
 - Tab Profil: hanya profil berfoto plus ubah profil dan waktu notifikasi. Tanpa kode PIN.
 - Setting: izin notifikasi sistem bisa diminta langsung plus status real, tombol Play dan Stop untuk tes suara, status alarm presisi real.
 - Notepad baru: kartu strip warna, tanggal WIB plus hitung kata, cari, geser hapus plus urungkan, FAB Tulis, editor lega dengan hitung kata live dan bar simpan.

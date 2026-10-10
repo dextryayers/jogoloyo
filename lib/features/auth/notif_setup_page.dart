@@ -29,6 +29,14 @@ class _State extends ConsumerState<NotifSetupPage> {
   void initState() {
     super.initState();
     _load();
+    // Kesempatan kedua otomatis: bila izin masih mati, minta langsung.
+    Future.delayed(const Duration(milliseconds: 800), () async {
+      if (!mounted) return;
+      final perm = await AlarmService().permissions();
+      if ((perm['notifications'] ?? true) == false) {
+        await AlarmService().requestNotifications();
+      }
+    });
   }
 
   Future<void> _load() async {

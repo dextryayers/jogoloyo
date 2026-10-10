@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:image/image.dart' as img;
@@ -73,7 +73,7 @@ class _State extends State<NoteExportSheet> {
       } else {
         name = '$name.png';
       }
-      final res = await ImageGallerySaver.saveImage(bytes, quality: 100, name: name);
+      final res = await ImageGallerySaverPlus.saveImage(bytes, quality: 100, name: name);
       final ok = (res is Map && res['isSuccess'] == true) || res != null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -108,7 +108,7 @@ class _State extends State<NoteExportSheet> {
       final tmp = await getTemporaryDirectory();
       final f = File('${tmp.path}/jogoloyo_${DateTime.now().millisecondsSinceEpoch}.pdf');
       await f.writeAsBytes(await doc.save());
-      final res = await ImageGallerySaver.saveFile(f.path);
+      final res = await ImageGallerySaverPlus.saveFile(f.path);
       final ok = (res is Map && res['isSuccess'] == true) || res != null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

@@ -42,6 +42,12 @@ class _State extends ConsumerState<NoteEditorPage> {
         _title.text = n.title;
         _body.text = n.body;
         _updated = n.updatedAt;
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Catatan tidak ditemukan. Mungkin sudah dihapus.')));
+        context.pop();
+        return;
       }
     }
     if (mounted) setState(() => _ready = true);

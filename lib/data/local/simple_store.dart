@@ -73,16 +73,28 @@ class Note {
   final String title;
   final String body;
   final DateTime updatedAt;
-  const Note({required this.id, required this.title, required this.body, required this.updatedAt});
+  final bool pinned;
+  const Note(
+      {required this.id,
+      required this.title,
+      required this.body,
+      required this.updatedAt,
+      this.pinned = false});
 
-  Map<String, dynamic> toJson() =>
-      {'id': id, 'title': title, 'body': body, 'updated': updatedAt.toIso8601String()};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'body': body,
+        'updated': updatedAt.toIso8601String(),
+        'pinned': pinned,
+      };
 
   static Note fromJson(Map<String, dynamic> m) => Note(
         id: m['id'] as String,
         title: m['title'] as String? ?? '',
         body: m['body'] as String? ?? '',
         updatedAt: DateTime.tryParse(m['updated'] as String? ?? '') ?? DateTime.now().toUtc(),
+        pinned: m['pinned'] as bool? ?? false,
       );
 }
 
@@ -217,15 +229,35 @@ class SimpleStore {
     if (raw == null) return [];
     final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
     final notes = list.map(Note.fromJson).toList();
-    notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    notes.sort((a, b) {
+      if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
     return notes;
+  }
+
+  Future<void> togglePin(String id) async {
+    final all = await loadNotes();
+    final i = all.indexWhere((e) => e.id == id);
+    if (i < 0) return;
+    final n = all[i];
+    all[i] = Note(
+        id: n.id, title: n.title, body: n.body, updatedAt: n.updatedAt, pinned: !n.pinned);
+    final p = await SharedPreferences.getInstance();
+    await p.setString(kNotes, jsonEncode(all.map((e) => e.toJson()).toList()));
   }
 
   Future<void> saveNote({String? id, required String title, required String body}) async {
     final all = await loadNotes();
     final nid = id ?? const Uuid().v4();
-    final n = Note(id: nid, title: title.trim(), body: body, updatedAt: DateTime.now().toUtc());
     final i = all.indexWhere((e) => e.id == nid);
+    final pinned = i >= 0 ? all[i].pinned : false;
+    final n = Note(
+        id: nid,
+        title: title.trim(),
+        body: body,
+        updatedAt: DateTime.now().toUtc(),
+        pinned: pinned);
     if (i >= 0) {
       all[i] = n;
     } else {

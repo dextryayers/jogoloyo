@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/theme.dart';
+import '../../core/alarm/alarm_service.dart';
 import '../../shared/widgets/app_logo.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -25,8 +26,13 @@ class _State extends State<OnboardingPage> {
   Future<void> _finish() async {
     final p = await SharedPreferences.getInstance();
     await p.setBool('onboarding_done', true);
+    // Minta izin notifikasi otomatis tepat setelah onboarding.
+    // Dialog sistem muncul sendiri. Lanjut jalan walau ditolak.
+    try {
+      await AlarmService().requestNotifications();
+    } catch (_) {}
     if (!mounted) return;
-    context.go('/guru-setup');
+    context.go('/profil-setup');
   }
 
   @override
