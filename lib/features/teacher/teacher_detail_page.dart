@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../data/local/app_db.dart';
 import '../../data/local/les_store.dart';
+import 'teacher_providers.dart';
 import 'teacher_repo.dart';
 
 class TeacherDetailPage extends ConsumerStatefulWidget {

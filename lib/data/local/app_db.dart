@@ -83,14 +83,118 @@ class Checkins extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Profiles, TeacherVerifs, Sessions, Attendances, VerifAudits, Checkins])
+class Materials extends Table {
+  TextColumn get id => text()();
+  TextColumn get subject => text()();
+  TextColumn get title => text()();
+  TextColumn get kind => text().withDefault(const Constant('pdf'))();
+  TextColumn get pathOrUrl => text()();
+  IntColumn get sizeBytes => integer().withDefault(const Constant(0))();
+  IntColumn get revision => integer().withDefault(const Constant(1))();
+  BoolColumn get important => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Assignments extends Table {
+  TextColumn get id => text()();
+  TextColumn get subject => text()();
+  TextColumn get title => text()();
+  TextColumn get desc => text().withDefault(const Constant(''))();
+  DateTimeColumn get dueUtc => dateTime()();
+  IntColumn get maxScore => integer().withDefault(const Constant(100))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Submissions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get assignmentId => text().references(Assignments, #id)();
+  TextColumn get studentId => text().references(Profiles, #id)();
+  TextColumn get filePath => text()();
+  IntColumn get score => integer().nullable()();
+  TextColumn get status => text().withDefault(const Constant('terkumpul'))();
+  DateTimeColumn get submittedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class Quizzes extends Table {
+  TextColumn get id => text()();
+  TextColumn get subject => text()();
+  TextColumn get title => text()();
+  IntColumn get durationMin => integer().withDefault(const Constant(15))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Questions extends Table {
+  TextColumn get id => text()();
+  TextColumn get quizId => text().references(Quizzes, #id)();
+  TextColumn get questionText => text()();
+  TextColumn get optionsJson => text()();
+  IntColumn get answerIdx => integer()();
+  TextColumn get explain => text().withDefault(const Constant(''))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Attempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get quizId => text().references(Quizzes, #id)();
+  TextColumn get studentId => text().references(Profiles, #id)();
+  IntColumn get score => integer()();
+  TextColumn get answersJson => text()();
+  TextColumn get kind => text().withDefault(const Constant('resmi'))();
+  DateTimeColumn get submittedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class Bills extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().references(Profiles, #id)();
+  TextColumn get period => text()();
+  IntColumn get amountInt => integer()();
+  TextColumn get status => text().withDefault(const Constant('unpaid'))();
+  TextColumn get proofPath => text().nullable()();
+  TextColumn get reviewerNote => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Announcements extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get body => text()();
+  TextColumn get target => text().withDefault(const Constant('semua'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [
+  Profiles,
+  TeacherVerifs,
+  Sessions,
+  Attendances,
+  VerifAudits,
+  Checkins,
+  Materials,
+  Assignments,
+  Submissions,
+  Quizzes,
+  Questions,
+  Attempts,
+  Bills,
+  Announcements
+])
 class AppDb extends _$AppDb {
   AppDb() : super(_open());
 
   AppDb.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -100,6 +204,16 @@ class AppDb extends _$AppDb {
             await m.addColumn(profiles, profiles.subject);
             await m.createTable(verifAudits);
             await m.createTable(checkins);
+          }
+          if (from <= 2) {
+            await m.createTable(materials);
+            await m.createTable(assignments);
+            await m.createTable(submissions);
+            await m.createTable(quizzes);
+            await m.createTable(questions);
+            await m.createTable(attempts);
+            await m.createTable(bills);
+            await m.createTable(announcements);
           }
         },
       );

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/local/les_store.dart';
 import 'photo_service.dart';
-import 'teacher_repo.dart';
+import 'teacher_providers.dart';
 
 class TeacherSubmitPage extends ConsumerStatefulWidget {
   const TeacherSubmitPage({super.key});
@@ -118,7 +118,8 @@ class _State extends ConsumerState<TeacherSubmitPage> {
                     setState(() => _saving = true);
                     try {
                       final store = ref.read(lesStoreProvider);
-                      final id = await store.createAccount(role: 'GURU', name: _name.text, pin: _pin.text, gender: _gender);
+                      final id = await store.createAccount(
+                          role: 'GURU', name: _name.text, pin: _pin.text, gender: _gender, subject: _subject);
                       await ref.read(teacherRepoProvider).submit(teacherId: id, photoPath: _photo!, idDocPath: _idDoc!);
                       if (!context.mounted) return;
                       context.pop();

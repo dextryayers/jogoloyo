@@ -15,6 +15,12 @@ import '../features/attendance/attendance_page.dart';
 import '../features/attendance/qr_display_page.dart';
 import '../features/attendance/qr_scan_page.dart';
 import '../features/material/material_tab.dart';
+import '../features/material/quiz_page.dart';
+import '../features/material/assignment_page.dart';
+import '../features/billing/billing_list_page.dart';
+import '../features/billing/bill_detail_page.dart';
+import '../features/profile/sync_backup_page.dart';
+import '../features/profile/wipe_page.dart';
 import '../features/profile/profile_tab.dart';
 import '../features/auth/setup_owner_page.dart';
 import '../features/auth/pin_page.dart';
@@ -45,6 +51,12 @@ final appRouter = GoRouter(
     GoRoute(path: '/attendance/:id', builder: (c, s) => AttendancePage(sessionId: s.pathParameters['id']!)),
     GoRoute(path: '/attendance/:id/qr', builder: (c, s) => QrDisplayPage(sessionId: s.pathParameters['id']!)),
     GoRoute(path: '/attendance/:id/scan', builder: (c, s) => QrScanPage(sessionId: s.pathParameters['id']!)),
+    GoRoute(path: '/quiz/:id', builder: (c, s) => QuizPage(quizId: s.pathParameters['id']!)),
+    GoRoute(path: '/assignments/:id', builder: (c, s) => AssignmentPage(assignmentId: s.pathParameters['id']!)),
+    GoRoute(path: '/bills', builder: (c, s) => const BillingListPage()),
+    GoRoute(path: '/bills/:id', builder: (c, s) => BillDetailPage(billId: s.pathParameters['id']!)),
+    GoRoute(path: '/sync', builder: (c, s) => const SyncBackupPage()),
+    GoRoute(path: '/wipe', builder: (c, s) => const WipePage()),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return ScaffoldWithTabs(shell: shell);

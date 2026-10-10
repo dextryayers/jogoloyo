@@ -35,6 +35,7 @@ class SessionLocalRepo {
     required String room,
     String note = '',
   }) async {
+    await _guardTeacherActive(teacherId);
     final all = await (db.select(db.sessions)
           ..where((t) => t.status.isIn(['scheduled', 'ongoing'])))
         .get();
@@ -127,5 +128,16 @@ class SessionLocalRepo {
         updatedAt: Value(DateTime.now().toUtc()),
       ),
     );
+  }
+
+  Future<void> _guardTeacherActive(String teacherId) async {
+    final p = await (db.select(db.profiles)..where((t) => t.id.equals(teacherId))).getSingleOrNull();
+    if (p == null) throw Exception('Guru tidak ditemukan.');
+    if (p.role == 'GURU' && p.gender == 'P') {
+      final v = await (db.select(db.teacherVerifs)..where((t) => t.teacherId.equals(teacherId))).getSingleOrNull();
+      if (v?.status != 'ACTIVE') {
+        throw Exception('Guru belum Terverifikasi. Selesaikan review jilbab dulu.');
+      }
+    }
   }
 }

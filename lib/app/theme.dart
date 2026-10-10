@@ -28,12 +28,22 @@ class JogloSpacing {
 
 ThemeData jogloTheme() {
   final base = ThemeData(useMaterial3: true, fontFamily: 'Roboto');
+  const inputBorder = OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+    borderSide: BorderSide(color: JogloColors.line),
+  );
   return base.copyWith(
     scaffoldBackgroundColor: JogloColors.paper,
     colorScheme: ColorScheme.fromSeed(
       seedColor: JogloColors.primary,
       primary: JogloColors.primary,
       surface: JogloColors.paper,
+    ),
+    textTheme: base.textTheme.copyWith(
+      titleLarge: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: JogloColors.ink),
+      titleMedium: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: JogloColors.ink),
+      bodyMedium: const TextStyle(fontSize: 14, color: JogloColors.ink),
+      bodySmall: const TextStyle(fontSize: 12, color: JogloColors.muted),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: JogloColors.paper,
@@ -44,12 +54,26 @@ ThemeData jogloTheme() {
     cardTheme: CardThemeData(
       color: JogloColors.card,
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: JogloColors.line),
       ),
     ),
     chipTheme: base.chipTheme.copyWith(shape: const StadiumBorder()),
+    inputDecorationTheme: const InputDecorationTheme(
+      border: inputBorder,
+      enabledBorder: inputBorder,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: JogloColors.primary, width: 1.5),
+      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    ),
+    dialogTheme: const DialogThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16)))),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+    dividerTheme: const DividerThemeData(color: JogloColors.line, thickness: 1),
+    listTileTheme: const ListTileThemeData(minVerticalPadding: 8),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: JogloColors.primary,

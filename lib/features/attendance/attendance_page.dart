@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/local/app_db.dart';
 import '../../data/local/les_store.dart';
 import 'attendance_repo.dart';
 import 'export_service.dart';

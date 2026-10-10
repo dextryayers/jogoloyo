@@ -120,6 +120,22 @@ class _State extends ConsumerState<SessionDetailPage> {
                 child: Column(
                   children: [
                     ListTile(
+                      leading: const Icon(Icons.groups_outlined, color: JogloColors.primary),
+                      title: const Text('Absensi dan QR'),
+                      subtitle: const Text('Guru tampilkan kode, siswa pindai di kelas.'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/attendance/${s.id}'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.login_outlined, color: JogloColors.primary),
+                      title: const Text('Check In Guru'),
+                      subtitle: const Text('Wajib centang kepatuhan berjilbab.'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/checkin/${s.id}/${s.teacherId}'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
                       leading: const Icon(Icons.edit_outlined),
                       title: const Text('Ubah jam atau ruang'),
                       subtitle: const Text('Bentrok guru atau ruang akan ditolak otomatis.'),

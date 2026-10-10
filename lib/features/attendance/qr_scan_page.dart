@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../data/local/les_store.dart';
-import 'attendance_repo.dart';
+import 'attendance_page.dart';
 import 'qr_service.dart';
 
 class QrScanPage extends ConsumerStatefulWidget {

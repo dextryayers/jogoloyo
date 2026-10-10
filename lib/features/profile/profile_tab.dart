@@ -1,5 +1,6 @@
 // Tab Saya: akun, tagihan, alarm, sync paket, backup. Semua lokal.
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/alarm/alarm_service.dart';
 import '../../data/local/parent_link.dart';
 
@@ -114,26 +115,18 @@ class _ProfileTabState extends State<ProfileTab> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.payments_outlined),
-                  title: const Text('Tagihan: Rp150.000'),
-                  subtitle: const Text('SPP Okt 2026 . Menunggu verifikasi'),
+                  title: const Text('Tagihan Les'),
+                  subtitle: const Text('SPP Okt 2026 . Buat, bukti, verifikasi, kwitansi.'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
+                  onTap: () => context.push('/bills'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.sync),
-                  title: const Text('Ekspor dan Impor Paket'),
-                  subtitle: const Text('Kirim jadwal via file jika beda HP.'),
+                  title: const Text('Sync dan Backup'),
+                  subtitle: const Text('Distribusi JSON, backup ZIP, riwayat jelas.'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.backup_outlined),
-                  title: const Text('Backup Sekarang'),
-                  subtitle: const Text('Terakhir: belum pernah. Wajib tiap 7 hari.'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
+                  onTap: () => context.push('/sync'),
                 ),
               ],
             ),

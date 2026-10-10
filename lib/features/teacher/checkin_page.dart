@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/copy_rules.dart';
-import 'teacher_repo.dart';
+import 'teacher_providers.dart';
 
 class CheckinPage extends ConsumerStatefulWidget {
   final String sessionId;

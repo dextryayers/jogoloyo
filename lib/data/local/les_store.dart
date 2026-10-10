@@ -52,6 +52,7 @@ class LesStore {
     required String name,
     required String pin,
     String? gender,
+    String? subject,
   }) async {
     if (!PinHash.isPinValid(pin)) throw Exception('PIN harus 6 digit.');
     const allowed = {'ADMIN', 'GURU', 'SISWA', 'ORTU'};
@@ -66,6 +67,7 @@ class LesStore {
             pinHash: PinHash.hash(pin, salt),
             salt: salt,
             gender: Value(gender),
+            subject: Value(subject),
           ),
         );
     return id;
