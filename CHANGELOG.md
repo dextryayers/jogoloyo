@@ -1,5 +1,14 @@
 # Changelog Les Jogoloyo
 
+## 1.0.0+1 - V.02 simpel
+
+- Rombak total: hanya pengingat plus catatan. Fitur lama dihapus dari navigasi.
+- Alur: loading, onboarding 3 halaman, profil (nama, foto autosave, jam Pagi Siang Sore Malam, gender), setup notifikasi (jam tiap slot, suara, mode keras), lalu dashboard.
+- 4 tab bawah: Beranda, Pengingat, Catatan, Saya.
+- Pengingat: judul, tanggal, jam, slot cepat, harian, Suara 1 sampai 6, Mode Keras 200 persen, tes bunyi. Bunyi otomatis plus getar via alarm exact offset 0.
+- Catatan: notepad cari tambah ubah hapus.
+- Saya: profil berfoto, setting sistem (izin, suara default, mode keras, tes, ubah profil, ubah waktu, reset).
+
 ## 1.0.0+1 - V.01.0 local deep + logo
 
 - Logo resmi assets/logo.png: icon launcher Android, splash native, splash dalam app, onboarding, setup, header dashboard.

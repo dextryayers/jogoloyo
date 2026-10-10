@@ -1,38 +1,57 @@
-// Tab Saya: profil aktif dengan foto, tagihan, alarm, sync paket, backup. Semua lokal.
+// Tab Saya simpel: profil (foto, nama, slot, gender) plus setting sistem.
+// Setting: suara default, mode keras, izin notifikasi, tes bunyi, ulang setup, reset.
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../app/theme.dart';
 import '../../core/alarm/alarm_service.dart';
-import '../../core/log/app_log.dart';
 import '../../data/local/les_store.dart';
-import '../../data/local/parent_link.dart';
 import '../auth/active_profile.dart';
+import '../schedule/alarm_prefs.dart';
 import '../teacher/photo_service.dart';
 
 class ProfileTab extends ConsumerStatefulWidget {
   const ProfileTab({super.key});
   @override
-  ConsumerState<ProfileTab> createState() => _ProfileTabState();
+  ConsumerState<ProfileTab> createState() => _State();
 }
 
-class _ProfileTabState extends ConsumerState<ProfileTab> {
-  String? _linkCode;
-  final _claim = TextEditingController();
+class _State extends ConsumerState<ProfileTab> {
+  String _sound = 'suara1';
+  bool _loud = true;
+  bool _exact = true;
 
   @override
-  void dispose() {
-    _claim.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _load();
   }
 
-  Future<void> _changePhoto(String profileId) async {
+  Future<void> _load() async {
+    final p = await SharedPreferences.getInstance();
+    final perm = await AlarmService().permissions();
+    if (!mounted) return;
+    setState(() {
+      _sound = p.getString('default_sound') ?? 'suara1';
+      _loud = p.getBool('default_loud') ?? true;
+      _exact = perm['exactAlarm'] ?? true;
+    });
+  }
+
+  Future<void> _changePhoto() async {
+    final active = await ref.read(activeProfileProvider.future);
     try {
       final path = await PhotoService().takeProfilePhoto();
-      await ref.read(lesStoreProvider).updatePhoto(profileId, path);
-      ref.invalidate(activeProfileProvider);
-      AppLog.record('photo_change', profileId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_photo', path);
+      if (active != null) {
+        await ref.read(lesStoreProvider).updatePhoto(active.id, path);
+        ref.invalidate(activeProfileProvider);
+      }
       if (!mounted) return;
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Foto profil terpasang otomatis.')));
     } catch (e) {
@@ -48,128 +67,143 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Akun Saya', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const Text('Saya', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
-          active.when(
-            loading: () => const Card(child: ListTile(title: Text('Memuat profil...'))),
-            error: (e, _) => Card(child: ListTile(title: Text('Gagal: $e'))),
-            data: (p) {
-              final photo = p?.photoPath;
-              final hasPhoto = photo != null &&
-                  photo.isNotEmpty &&
-                  File(photo).existsSync();
+          FutureBuilder(
+            future: SharedPreferences.getInstance(),
+            builder: (c, snap) {
+              final p = snap.data;
+              final name = p?.getString('user_name') ?? active.valueOrNull?.name ?? '-';
+              final slot = p?.getString('user_slot') ?? 'Pagi';
+              final gender = p?.getString('user_gender') ?? '-';
+              final photo = p?.getString('user_photo') ?? active.valueOrNull?.photoPath;
+              final hasPhoto = photo != null && photo.isNotEmpty && File(photo).existsSync();
               return Card(
                 child: ListTile(
                   leading: hasPhoto
-                      ? CircleAvatar(backgroundImage: FileImage(File(photo)))
-                      : const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text('${p?.name ?? '-'} . ${p?.role ?? '-'}'),
-                  subtitle: Text(p?.subject != null && (p?.subject ?? '').isNotEmpty
-                      ? '${p?.subject} . PIN aktif'
-                      : 'PIN aktif'),
+                      ? CircleAvatar(radius: 24, backgroundImage: FileImage(File(photo)))
+                      : const CircleAvatar(radius: 24, child: Icon(Icons.person)),
+                  title: Text(name),
+                  subtitle: Text('Jam $slot . $gender'),
                   trailing: TextButton(
-                    onPressed: p == null ? null : () => _changePhoto(p.id),
+                    onPressed: _changePhoto,
                     child: const Text('Ganti Foto'),
                   ),
                 ),
               );
             },
           ),
+          const SizedBox(height: 8),
+          const Text('Setting Sistem', style: TextStyle(fontWeight: FontWeight.w800)),
           Card(
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.family_restroom_outlined),
-                  title: const Text('Tautan Ortu dan Anak'),
-                  subtitle: Text(_linkCode == null
-                      ? 'Buat kode 6 digit, berlaku 24 jam. Maks 2 ortu per anak.'
-                      : 'Kode anak: $_linkCode . Berlaku 24 jam.'),
-                  trailing: ElevatedButton(
+                  leading: Icon(_exact ? Icons.check_circle : Icons.warning,
+                      color: _exact ? JogloColors.success : JogloColors.warning),
+                  title: Text(_exact ? 'Izin alarm presisi aktif' : 'Izin alarm presisi mati'),
+                  subtitle: const Text('Harus aktif agar bunyi tepat menit.'),
+                  trailing: TextButton(
                     onPressed: () async {
-                      final code =
-                          await ParentLinkService().createForChild('sinta-id');
-                      setState(() => _linkCode = code);
+                      await AlarmService().openSettings();
+                      _load();
                     },
-                    child: const Text('Buat Kode'),
+                    child: const Text('Buka'),
                   ),
                 ),
+                const Divider(height: 1),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: Row(
                     children: [
+                      const Text('Suara default: '),
                       Expanded(
-                        child: TextField(
-                          controller: _claim,
-                          decoration: const InputDecoration(
-                            labelText: 'Klaim kode anak',
-                            border: OutlineInputBorder(),
-                          ),
+                        child: Wrap(
+                          spacing: 6,
+                          children: [
+                            for (final s in AlarmSound.options)
+                              ChoiceChip(
+                                label: Text(s.label),
+                                selected: _sound == s.id,
+                                onSelected: (_) async {
+                                  final prefs = await SharedPreferences.getInstance();
+                                  await prefs.setString('default_sound', s.id);
+                                  setState(() => _sound = s.id);
+                                  AlarmService().test('urgent', sound: s.id, loud: _loud);
+                                },
+                              ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final child = await ParentLinkService()
-                              .claim(code: _claim.text, parentId: 'ortu-ibu');
-                          final msg = child == null
-                              ? 'Kode tidak valid, kedaluwarsa, atau batas tautan tercapai (maks 2 ortu per anak).'
-                              : 'Tertaut ke anak: $child. Hanya bisa baca.';
-                          if (!mounted) return;
-                          messenger.showSnackBar(SnackBar(content: Text(msg)));
-                        },
-                        child: const Text('Klaim'),
                       ),
                     ],
                   ),
+                ),
+                SwitchListTile(
+                  value: _loud,
+                  onChanged: (v) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('default_loud', v);
+                    setState(() => _loud = v);
+                  },
+                  title: const Text('Mode Keras 200 persen'),
+                  subtitle: const Text('Volume dipaksa maksimal plus getar kuat.'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.alarm),
-                  title: const Text('Tes Alarm'),
-                  subtitle: const Text(
-                      'Pastikan bunyi keluar sebelum hari H. Tes info dan urgent.'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => AlarmService().test('info'),
-                        child: const Text('Info'),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: () => AlarmService().test('urgent'),
-                        child: const Text('Urgent'),
-                      ),
-                    ],
+                  title: const Text('Tes Bunyi Keras'),
+                  subtitle: const Text('Dengar suara default sekarang.'),
+                  trailing: ElevatedButton(
+                    onPressed: () => AlarmService().test('urgent', sound: _sound, loud: _loud),
+                    child: const Text('Tes'),
                   ),
                 ),
+                const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.battery_saver_outlined),
-                  title: const Text('Izin dan Baterai'),
-                  subtitle: const Text(
-                      'Xiaomi Autostart. Samsung Unrestricted. Oppo Vivo background allow.'),
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Ubah Profil'),
+                  subtitle: const Text('Nama, foto, jam, gender.'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => AlarmService().openSettings(),
+                  onTap: () => context.push('/profil-setup'),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.payments_outlined),
-                  title: const Text('Tagihan Les'),
-                  subtitle: const Text('SPP Okt 2026 . Buat, bukti, verifikasi, kwitansi.'),
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: const Text('Ubah Waktu Notifikasi'),
+                  subtitle: const Text('Jam tiap slot plus suara.'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/bills'),
+                  onTap: () => context.push('/notif-setup'),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.sync),
-                  title: const Text('Sync dan Backup'),
-                  subtitle: const Text('Distribusi JSON, backup ZIP, riwayat jelas.'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/sync'),
+                  leading: const Icon(Icons.delete_forever_outlined, color: JogloColors.danger),
+                  title: const Text('Reset Semua', style: TextStyle(color: JogloColors.danger)),
+                  subtitle: const Text('Hapus profil, pengingat, catatan. Mulai dari awal.'),
+                  onTap: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (d) => AlertDialog(
+                        title: const Text('Reset semua'),
+                        content: const Text('Semua data di HP ini dihapus. Lanjut?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                          ElevatedButton(onPressed: () => Navigator.pop(d, true), child: const Text('Reset')),
+                        ],
+                      ),
+                    );
+                    if (ok != true) return;
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.clear();
+                    if (!context.mounted) return;
+                    context.go('/onboarding');
+                  },
                 ),
               ],
             ),
+          ),
+          const Center(
+            child: Text('Les Jogoloyo V.02 simpel . 100 persen offline',
+                style: TextStyle(fontSize: 12, color: JogloColors.muted)),
           ),
         ],
       ),
