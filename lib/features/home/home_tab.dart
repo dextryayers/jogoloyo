@@ -88,27 +88,60 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
                   message: 'Gagal: $e', onRetry: () => ref.invalidate(remindersProvider)),
               data: (list) {
                 final today = _today(list);
-                if (today.isEmpty) {
+                final upcoming = _upcoming(list);
+                if (today.isEmpty && upcoming.isEmpty) {
                   return EmptyState(
-                    title: 'Hari ini kosong',
-                    desc: 'Belum ada pengingat hari ini. Tambah satu agar berbunyi tepat waktu.',
+                    title: 'Belum ada pengingat',
+                    desc: 'Buat yang pertama. Atur jam, pilih suara, tes bunyi.',
                     actionLabel: 'Tambah',
+                    icon: Icons.add_alarm_outlined,
                     onAction: () => context.push('/reminder/new'),
                   );
                 }
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final r in today)
-                      Card(
+                    const Text('Hari ini',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: JogloColors.muted)),
+                    const SizedBox(height: 8),
+                    if (today.isEmpty)
+                      const Card(
                         child: ListTile(
-                          leading: Icon(r.enabled ? Icons.alarm_on : Icons.alarm_off,
-                              color: r.enabled ? JogloColors.primary : JogloColors.muted),
-                          title: Text(r.title.isEmpty ? 'Pengingat' : r.title),
-                          subtitle: Text('${wibHm(r.whenUtc)} WIB . ${r.daily ? 'Tiap hari' : 'Sekali'}'),
-                          trailing: const Icon(Icons.chevron_right),
+                          leading: Icon(Icons.event_available_outlined,
+                              color: JogloColors.muted),
+                          title: Text('Hari ini kosong'),
+                          subtitle: Text('Yang tanggal lain ada di bawah.'),
+                        ),
+                      )
+                    else
+                      for (final r in today)
+                        _ReminderTile(
+                          title: r.title.isEmpty ? 'Pengingat' : r.title,
+                          subtitle:
+                              '${wibHm(r.whenUtc)} WIB . ${r.daily ? 'Tiap hari' : 'Sekali'}',
+                          enabled: r.enabled,
                           onTap: () => context.push('/reminder/${r.id}'),
                         ),
-                      ),
+                    if (upcoming.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text('Mendatang',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: JogloColors.muted)),
+                      const SizedBox(height: 8),
+                      for (final r in upcoming)
+                        _ReminderTile(
+                          title: r.title.isEmpty ? 'Pengingat' : r.title,
+                          subtitle:
+                              '${wibDay(r.whenUtc)} ${wibHm(r.whenUtc)} WIB . Sekali',
+                          enabled: r.enabled,
+                          onTap: () => context.push('/reminder/${r.id}'),
+                        ),
+                    ],
                   ],
                 );
               },
@@ -194,12 +227,53 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
       ..sort((a, b) => a.whenUtc.compareTo(b.whenUtc));
   }
 
+  // Sekali di tanggal lain yang masih aktif: tetap tampil agar tidak hilang.
+  List<Reminder> _upcoming(List<Reminder> all) {
+    final now = DateTime.now().toUtc();
+    final nowWib = now.add(const Duration(hours: 7));
+    final todayStartWib = DateTime(nowWib.year, nowWib.month, nowWib.day);
+    return all.where((r) {
+      if (!r.enabled || r.daily) return false;
+      final w = r.whenUtc.toUtc().add(const Duration(hours: 7));
+      final day = DateTime(w.year, w.month, w.day);
+      return day.isAfter(todayStartWib);
+    }).toList()
+      ..sort((a, b) => a.whenUtc.compareTo(b.whenUtc));
+  }
+
   String _greeting() {
     final h = DateTime.now().hour;
     if (h < 11) return 'Selamat pagi, $_name.';
     if (h < 15) return 'Selamat siang, $_name.';
     if (h < 19) return 'Selamat sore, $_name.';
     return 'Selamat malam, $_name.';
+  }
+}
+
+class _ReminderTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool enabled;
+  final VoidCallback onTap;
+  const _ReminderTile({
+    required this.title,
+    required this.subtitle,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: Icon(enabled ? Icons.alarm_on : Icons.alarm_off,
+            color: enabled ? JogloColors.primary : JogloColors.muted),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
   }
 }
 

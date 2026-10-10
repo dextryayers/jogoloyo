@@ -234,13 +234,17 @@ class _State extends ConsumerState<ReminderFormPage> {
                 AppLog.record('reminder_save', '$id:${res.scheduled}');
                 final perm = await AlarmService().permissions();
                 final exact = perm['exactAlarm'] ?? true;
+                final armed = await AlarmService().isArmed(
+                    sessionId: id, profileId: 'me', offsets: const [0]);
                 ref.invalidate(remindersProvider);
                 if (!context.mounted) return;
                 context.pop();
                 messenger.showSnackBar(SnackBar(
-                    content: Text(res.scheduled > 0
-                        ? 'Tersimpan jam $hm WIB. Akan berbunyi plus getar tepat waktu.'
-                        : 'Tersimpan tapi alarm gagal dijadwalkan. Buka Setting lalu cek izin.')));
+                    content: Text(armed
+                        ? 'Tersimpan jam $hm WIB. Alarm terpasang dan akan berbunyi.'
+                        : res.scheduled > 0
+                            ? 'Tersimpan jam $hm WIB tapi belum terpasang di sistem. Buka Setting lalu cek izin.'
+                            : 'Tersimpan tapi alarm gagal dijadwalkan. Buka Setting lalu cek izin.')));
                 if (!exact && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text(

@@ -12,6 +12,8 @@
 - Setting: minta izin notifikasi sistem plus status real, play stop di semua layar suara.
 - Ekspor catatan: PNG JPG JPEG plus pixel Low Normal High XHigh anti burik, PDF, simpan ke galeri.
 - Getar: amplitudo maksimal 255 plus pola lebih panjang, jalur cadangan via notifikasi, status mesin getar di Setting, getar mati hidup tetap dihormati di tes dan real.
+- Dashboard dua bagian Hari ini plus Mendatang agar buatan user tanggal lain tetap tampil.
+- Verifikasi terpasang nyata via sistem plus lapor jujur saat simpan.
 - Catatan anti hilang: autosave saat keluar tanpa tekan Simpan, tarik untuk refresh manual, buka lagi selalu muat plus tangani bila terhapus.
 - Izin notifikasi otomatis: diminta sendiri tepat setelah onboarding plus sekali lagi saat masuk setup notifikasi bila masih mati.
 - Tab Profil: hanya profil berfoto plus ubah profil dan waktu notifikasi. Tanpa kode PIN.

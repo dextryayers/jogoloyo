@@ -62,6 +62,23 @@ class AlarmService {
     }
   }
 
+  // Cek nyata ke sistem apakah alarm sudah terpasang. Bukan tebakan.
+  Future<bool> isArmed({
+    required String sessionId,
+    required String profileId,
+    required List<int> offsets,
+  }) async {
+    try {
+      final ok = await _ch.invokeMethod<bool>('isArmed', {
+        'sessionId': '${sessionId}_$profileId',
+        'offsetsMinutes': offsets,
+      });
+      return ok ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   Future<bool> requestNotifications() async {
     try {
       await _ch.invokeMethod('requestNotifications');

@@ -104,6 +104,12 @@ object AlarmStore {
         return entries(ctx).associate { "t_${it.key}_${it.off}" to it.triggerAt }
     }
 
+    // Kode request terpusat. Dipakai scheduler, boot, dan cek terpasang.
+    // Rumus tidak boleh berubah agar alarm lama tetap bisa dibatalkan.
+    fun reqCode(sessionKey: String, off: Int): Int {
+        return (sessionKey.hashCode() * 31 + off).hashCode() and 0x7FFFFFFF % 1000000 + off
+    }
+
     fun setNeedResync(ctx: Context, v: Boolean) {
         ctx.getSharedPreferences(P, Context.MODE_PRIVATE).edit().putBoolean(K_NEED, v).apply()
     }

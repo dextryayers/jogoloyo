@@ -8,6 +8,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import id.jogoloyo.jogoloyo_les.alarm.AlarmScheduler
+import id.jogoloyo.jogoloyo_les.alarm.AlarmReceiver
 import id.jogoloyo.jogoloyo_les.alarm.AlarmSoundPlayer
 import id.jogoloyo.jogoloyo_les.alarm.AlarmStore
 import id.jogoloyo.jogoloyo_les.alarm.NotificationHelper
@@ -41,6 +42,25 @@ class MainActivity : FlutterActivity() {
                 "cancelAllAlarms" -> {
                     for ((k, _) in AlarmStore.all(this)) AlarmScheduler.cancel(this, k)
                     res.success(true)
+                }
+                // Cek nyata ke sistem: PendingIntent masih terdaftar atau tidak.
+                "isArmed" -> {
+                    val key = call.argument<String>("sessionId") ?: ""
+                    val off = (call.argument<List<Int>>("offsetsMinutes") ?: listOf(0))
+                    var armed = true
+                    for (o in off) {
+                        val pi = PendingIntent.getBroadcast(
+                            this,
+                            AlarmStore.reqCode(key, o),
+                            Intent(this, AlarmReceiver::class.java),
+                            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+                        )
+                        if (pi == null) {
+                            armed = false
+                            break
+                        }
+                    }
+                    res.success(armed)
                 }
                 "testAlarm" -> {
                     val kind = call.argument<String>("kind") ?: "info"

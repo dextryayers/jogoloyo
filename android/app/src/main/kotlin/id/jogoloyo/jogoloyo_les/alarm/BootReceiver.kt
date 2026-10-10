@@ -28,7 +28,7 @@ class BootReceiver : BroadcastReceiver() {
                     putExtra("level", e.level)
                     putExtra("vibrate", e.vibrate)
                 }
-                val req = reqCode(e.key, e.off)
+                val req = AlarmStore.reqCode(e.key, e.off)
                 val pi = PendingIntent.getBroadcast(
                     ctx, req, i,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -43,9 +43,5 @@ class BootReceiver : BroadcastReceiver() {
             AlarmStore.setNeedResync(ctx, true)
         } catch (e: Exception) {
         }
-    }
-
-    private fun reqCode(sessionKey: String, off: Int): Int {
-        return (sessionKey.hashCode() * 31 + off).hashCode() and 0x7FFFFFFF % 1000000 + off
     }
 }

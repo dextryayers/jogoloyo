@@ -27,7 +27,7 @@ object AlarmScheduler {
             for (off in offsetsMinutes) {
                 val trigger = start - off * 60L * 1000L
                 if (trigger <= System.currentTimeMillis()) continue
-                val req = reqCode(sessionKey, off)
+                val req = AlarmStore.reqCode(sessionKey, off)
                 val i = Intent(ctx, AlarmReceiver::class.java).apply {
                     putExtra("sessionKey", sessionKey)
                     putExtra("offsetMin", off)
@@ -61,7 +61,7 @@ object AlarmScheduler {
     fun cancel(ctx: Context, sessionKey: String) {
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         for (off in listOf(60, 30, 10, 0)) {
-            val req = reqCode(sessionKey, off)
+            val req = AlarmStore.reqCode(sessionKey, off)
             val i = Intent(ctx, AlarmReceiver::class.java)
             val pi = PendingIntent.getBroadcast(
                 ctx, req, i,
@@ -70,9 +70,5 @@ object AlarmScheduler {
             am.cancel(pi)
         }
         AlarmStore.remove(ctx, sessionKey)
-    }
-
-    private fun reqCode(sessionKey: String, off: Int): Int {
-        return (sessionKey.hashCode() * 31 + off).hashCode() and 0x7FFFFFFF % 1000000 + off
     }
 }
