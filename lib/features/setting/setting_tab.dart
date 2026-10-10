@@ -18,6 +18,7 @@ class _State extends ConsumerState<SettingTab> {
   String _sound = 'suara1';
   bool _loud = true;
   bool _exact = true;
+  bool _notif = true;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _State extends ConsumerState<SettingTab> {
       _sound = p.getString('default_sound') ?? 'suara1';
       _loud = p.getBool('default_loud') ?? true;
       _exact = perm['exactAlarm'] ?? true;
+      _notif = perm['notifications'] ?? true;
     });
   }
 
@@ -43,20 +45,42 @@ class _State extends ConsumerState<SettingTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text('Setting', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          const Text('Izin asli sistem. Minta, cek status, tes bunyi dan stop.',
+              style: TextStyle(color: JogloColors.muted)),
           const SizedBox(height: 12),
           Card(
-            child: ListTile(
-              leading: Icon(_exact ? Icons.check_circle : Icons.warning,
-                  color: _exact ? JogloColors.success : JogloColors.warning),
-              title: Text(_exact ? 'Izin alarm presisi aktif' : 'Izin alarm presisi mati'),
-              subtitle: const Text('Harus aktif agar bunyi tepat menit plus getar.'),
-              trailing: TextButton(
-                onPressed: () async {
-                  await AlarmService().openSettings();
-                  _load();
-                },
-                child: const Text('Buka'),
-              ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(_notif ? Icons.check_circle : Icons.warning,
+                      color: _notif ? JogloColors.success : JogloColors.warning),
+                  title: Text(_notif ? 'Notifikasi aktif' : 'Notifikasi mati'),
+                  subtitle: const Text('Izin sistem agar banner muncul. Ketuk Minta.'),
+                  trailing: TextButton(
+                    onPressed: () async {
+                      await AlarmService().requestNotifications();
+                      await Future.delayed(const Duration(seconds: 1));
+                      _load();
+                    },
+                    child: const Text('Minta'),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(_exact ? Icons.check_circle : Icons.warning,
+                      color: _exact ? JogloColors.success : JogloColors.warning),
+                  title: Text(_exact ? 'Alarm presisi aktif' : 'Alarm presisi mati'),
+                  subtitle: const Text('Harus aktif agar bunyi tepat menit plus getar.'),
+                  trailing: TextButton(
+                    onPressed: () async {
+                      await AlarmService().openSettings();
+                      _load();
+                    },
+                    child: const Text('Buka'),
+                  ),
+                ),
+              ],
             ),
           ),
           Card(
@@ -92,14 +116,28 @@ class _State extends ConsumerState<SettingTab> {
                     title: const Text('Mode Keras 200 persen'),
                     subtitle: const Text('Volume dipaksa maksimal plus getar kuat.'),
                   ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => AlarmService().test('urgent', sound: _sound, loud: _loud),
-                      icon: const Icon(Icons.alarm),
-                      label: const Text('Tes Bunyi Keras'),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => AlarmService()
+                              .test('urgent', sound: _sound, loud: _loud),
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Play'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => AlarmService().stopSound(),
+                          icon: const Icon(Icons.stop),
+                          label: const Text('Stop'),
+                        ),
+                      ),
+                    ],
                   ),
+                  const Text('Play bunyikan suara default. Stop hentikan seketika.',
+                      style: TextStyle(fontSize: 12, color: JogloColors.muted)),
                 ],
               ),
             ),

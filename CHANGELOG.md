@@ -9,6 +9,8 @@
 - Tab Setting: izin presisi, suara default, mode keras, tes, ubah waktu, lapor masalah plus log, reset.
 - Lapor Masalah: form judul rincian, simpan lokal, bagikan plus file log ke admin.
 - Tab Profil: hanya profil berfoto plus ubah profil dan waktu notifikasi. Tanpa kode PIN.
+- Setting: izin notifikasi sistem bisa diminta langsung plus status real, tombol Play dan Stop untuk tes suara, status alarm presisi real.
+- Notepad baru: kartu strip warna, tanggal WIB plus hitung kata, cari, geser hapus plus urungkan, FAB Tulis, editor lega dengan hitung kata live dan bar simpan.
 
 ## 1.0.0+1 - V.02 simpel
 

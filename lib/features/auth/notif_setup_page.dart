@@ -105,8 +105,16 @@ class _State extends ConsumerState<NotifSetupPage> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => AlarmService().test('urgent', sound: _sound, loud: _loud),
-                  icon: const Icon(Icons.alarm),
-                  label: const Text('Tes Bunyi'),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => AlarmService().stopSound(),
+                  icon: const Icon(Icons.stop),
+                  label: const Text('Stop'),
                 ),
               ),
               const SizedBox(width: 8),

@@ -1,4 +1,5 @@
-// Editor catatan: judul plus isi plus simpan plus hapus. Simpel dan cepat.
+// Editor catatan: judul besar tanpa garis, isi lega, hitung kata live,
+// tanggal update, simpan besar di bawah, hapus via menu.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,11 +17,20 @@ class _State extends ConsumerState<NoteEditorPage> {
   final _title = TextEditingController();
   final _body = TextEditingController();
   bool _ready = false;
+  DateTime? _updated;
+  int _words = 0;
 
   @override
   void initState() {
     super.initState();
+    _body.addListener(_count);
     _load();
+  }
+
+  void _count() {
+    final t = _body.text.trim();
+    final w = t.isEmpty ? 0 : t.split(RegExp(r'\s+')).length;
+    if (w != _words && mounted) setState(() => _words = w);
   }
 
   Future<void> _load() async {
@@ -30,6 +40,7 @@ class _State extends ConsumerState<NoteEditorPage> {
       if (n != null) {
         _title.text = n.title;
         _body.text = n.body;
+        _updated = n.updatedAt;
       }
     }
     if (mounted) setState(() => _ready = true);
@@ -45,7 +56,9 @@ class _State extends ConsumerState<NoteEditorPage> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return Scaffold(appBar: AppBar(title: const Text('Catatan')), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(
+          appBar: AppBar(title: const Text('Catatan')),
+          body: const Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
       appBar: AppBar(
@@ -56,6 +69,18 @@ class _State extends ConsumerState<NoteEditorPage> {
               tooltip: 'Hapus',
               icon: const Icon(Icons.delete_outline, color: JogloColors.danger),
               onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (d) => AlertDialog(
+                    title: const Text('Hapus catatan'),
+                    content: const Text('Catatan ini dihapus dari HP.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                      ElevatedButton(onPressed: () => Navigator.pop(d, true), child: const Text('Hapus')),
+                    ],
+                  ),
+                );
+                if (ok != true) return;
                 await ref.read(simpleStoreProvider).deleteNote(widget.noteId!);
                 ref.invalidate(notesProvider);
                 if (!context.mounted) return;
@@ -64,47 +89,89 @@ class _State extends ConsumerState<NoteEditorPage> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          TextField(
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'Judul'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _body,
-            maxLines: 12,
-            decoration: const InputDecoration(
-              labelText: 'Isi catatan',
-              hintText: 'Tulis di sini...',
-              alignLabelWithHint: true,
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                TextField(
+                  controller: _title,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  decoration: const InputDecoration(
+                    hintText: 'Judul',
+                    hintStyle: TextStyle(color: JogloColors.muted),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+                if (_updated != null)
+                  Text(_date(_updated!),
+                      style: const TextStyle(fontSize: 12, color: JogloColors.muted)),
+                const Divider(),
+                TextField(
+                  controller: _body,
+                  maxLines: null,
+                  autofocus: widget.noteId == null,
+                  style: const TextStyle(fontSize: 15, height: 1.6),
+                  decoration: const InputDecoration(
+                    hintText: 'Tulis di sini...',
+                    hintStyle: TextStyle(color: JogloColors.muted),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                if (_title.text.trim().isEmpty && _body.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Isi dulu judul atau isinya.')));
-                  return;
-                }
-                await ref.read(simpleStoreProvider).saveNote(
-                      id: widget.noteId,
-                      title: _title.text,
-                      body: _body.text,
-                    );
-                ref.invalidate(notesProvider);
-                if (!context.mounted) return;
-                context.pop();
-              },
-              child: const Text('Simpan Catatan'),
+          Container(
+            padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 8,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: JogloColors.line)),
+            ),
+            child: Row(
+              children: [
+                Text('$_words kata', style: const TextStyle(color: JogloColors.muted)),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    if (_title.text.trim().isEmpty && _body.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Isi dulu judul atau isinya.')));
+                      return;
+                    }
+                    await ref.read(simpleStoreProvider).saveNote(
+                          id: widget.noteId,
+                          title: _title.text,
+                          body: _body.text,
+                        );
+                    ref.invalidate(notesProvider);
+                    if (!context.mounted) return;
+                    context.pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Catatan tersimpan di HP ini.')));
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Simpan'),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _date(DateTime utc) {
+    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    final w = utc.toUtc().add(const Duration(hours: 7));
+    return 'Terakhir ${w.day} ${months[w.month]} ${w.year} ${w.hour.toString().padLeft(2, '0')}:${w.minute.toString().padLeft(2, '0')} WIB';
   }
 }

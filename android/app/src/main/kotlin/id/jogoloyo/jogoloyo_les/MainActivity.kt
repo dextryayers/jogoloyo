@@ -52,6 +52,26 @@ class MainActivity : FlutterActivity() {
                     }
                     res.success(true)
                 }
+                "stopAlarmSound" -> {
+                    AlarmSoundPlayer.stop(this)
+                    res.success(true)
+                }
+                "requestNotifications" -> {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        try {
+                            androidx.core.app.ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                                1001,
+                            )
+                            res.success(true)
+                        } catch (e: Exception) {
+                            res.error("PERMISSION_DENIED", "Tidak bisa meminta izin.", null)
+                        }
+                    } else {
+                        res.success(true)
+                    }
+                }
                 "openExactAlarmSettings" -> {
                     try {
                         val i = if (Build.VERSION.SDK_INT >= 31) {
@@ -72,7 +92,12 @@ class MainActivity : FlutterActivity() {
                 "arePermissionsGranted" -> {
                     val am = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
                     val exact = if (Build.VERSION.SDK_INT >= 31) am.canScheduleExactAlarms() else true
-                    res.success(mapOf("exactAlarm" to exact, "notifications" to true, "fullScreenIntent" to true))
+                    val notif = try {
+                        androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled()
+                    } catch (e: Exception) {
+                        true
+                    }
+                    res.success(mapOf("exactAlarm" to exact, "notifications" to notif, "fullScreenIntent" to true))
                 }
                 else -> res.notImplemented()
             }

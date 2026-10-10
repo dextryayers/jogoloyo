@@ -51,6 +51,23 @@ class AlarmService {
     }
   }
 
+  Future<void> stopSound() async {
+    try {
+      await _ch.invokeMethod('stopAlarmSound');
+    } on PlatformException {
+      return;
+    }
+  }
+
+  Future<bool> requestNotifications() async {
+    try {
+      await _ch.invokeMethod('requestNotifications');
+      return true;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   Future<Map<String, bool>> permissions() async {
     try {
       final m = await _ch.invokeMapMethod<String, bool>('arePermissionsGranted');
