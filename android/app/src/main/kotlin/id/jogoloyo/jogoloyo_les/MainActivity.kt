@@ -50,10 +50,10 @@ class MainActivity : FlutterActivity() {
                     val vibrate = call.argument<Boolean>("vibrate") ?: true
                     if (kind == "urgent") {
                         AlarmSoundPlayer.play(this, sound, level, vibrate)
-                        NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = true)
+                        NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = false, vibrate = vibrate)
                     } else {
                         if (vibrate) AlarmSoundPlayer.vibrate(this, strong = false)
-                        NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false)
+                        NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false, vibrate = vibrate)
                     }
                     res.success(true)
                 }
@@ -102,7 +102,12 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {
                         true
                     }
-                    res.success(mapOf("exactAlarm" to exact, "notifications" to notif, "fullScreenIntent" to true))
+                    val hasVib = try {
+                        AlarmSoundPlayer.hasVibrator(this)
+                    } catch (e: Exception) {
+                        true
+                    }
+                    res.success(mapOf("exactAlarm" to exact, "notifications" to notif, "fullScreenIntent" to true, "vibrator" to hasVib))
                 }
                 else -> res.notImplemented()
             }

@@ -20,7 +20,8 @@ class ReminderFormPage extends ConsumerStatefulWidget {
 
 class _State extends ConsumerState<ReminderFormPage> {
   final _title = TextEditingController();
-  DateTime _day = DateTime.now();
+  // Tanggal default = hari ini WIB, bukan waktu lokal HP. Konsisten di semua zona.
+  DateTime _day = DateTime.now().toUtc().add(const Duration(hours: 7));
   TimeOfDay _time = const TimeOfDay(hour: 6, minute: 0);
   bool _daily = false;
   String _sound = 'suara1';
@@ -84,11 +85,14 @@ class _State extends ConsumerState<ReminderFormPage> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () async {
+                    final todayWib =
+                        DateTime.now().toUtc().add(const Duration(hours: 7));
+                    final today = DateTime(todayWib.year, todayWib.month, todayWib.day);
                     final d = await showDatePicker(
                       context: context,
-                      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      initialDate: _day,
+                      firstDate: today,
+                      lastDate: today.add(const Duration(days: 365)),
+                      initialDate: _day.isBefore(today) ? today : _day,
                     );
                     if (d != null) setState(() => _day = d);
                   },
@@ -199,12 +203,20 @@ class _State extends ConsumerState<ReminderFormPage> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
                 final wib = DateTime(_day.year, _day.month, _day.day, _time.hour, _time.minute);
                 var utc = wib.subtract(const Duration(hours: 7));
+                final hm =
+                    '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}';
                 if (!_daily && !utc.isAfter(DateTime.now().toUtc())) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Waktu sudah lewat. Pilih jam berikutnya.')));
+                  messenger.showSnackBar(SnackBar(
+                      content: Text(
+                          'Jam $hm WIB hari ini sudah lewat. Pilih jam berikutnya atau aktifkan harian.')));
+                  return;
+                }
+                if (!_enabled) {
+                  messenger.showSnackBar(const SnackBar(
+                      content: Text('Status mati. Nyalakan Aktif agar berbunyi.')));
                   return;
                 }
                 final id = widget.reminderId ?? const Uuid().v4();
@@ -220,11 +232,20 @@ class _State extends ConsumerState<ReminderFormPage> {
                     ));
                 final res = await ref.read(simpleStoreProvider).rescheduleAll();
                 AppLog.record('reminder_save', '$id:${res.scheduled}');
+                final perm = await AlarmService().permissions();
+                final exact = perm['exactAlarm'] ?? true;
                 ref.invalidate(remindersProvider);
                 if (!context.mounted) return;
                 context.pop();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Tersimpan. Akan berbunyi plus getar tepat waktu.')));
+                messenger.showSnackBar(SnackBar(
+                    content: Text(res.scheduled > 0
+                        ? 'Tersimpan jam $hm WIB. Akan berbunyi plus getar tepat waktu.'
+                        : 'Tersimpan tapi alarm gagal dijadwalkan. Buka Setting lalu cek izin.')));
+                if (!exact && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text(
+                          'Izin presisi mati. Bunyi bisa telat. Nyalakan di Setting.')));
+                }
               },
               child: const Text('Simpan Pengingat'),
             ),

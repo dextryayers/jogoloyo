@@ -50,7 +50,7 @@ object AlarmScheduler {
                 } else {
                     am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi)
                 }
-                AlarmStore.put(ctx, sessionKey, off, trigger)
+                AlarmStore.put(ctx, sessionKey, off, trigger, title, room, sound, level, vibrate)
             }
             true
         } catch (e: Exception) {

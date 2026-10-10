@@ -1,17 +1,57 @@
 // Tab Pengingat: daftar simpel, toggle aktif, tambah, ubah, hapus, tes.
 // Setiap simpan langsung dijadwalkan ke alarm exact. Bunyi plus getar otomatis.
+// Banner jujur bila izin presisi mati. Resync tiap resume.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/alarm/alarm_service.dart';
 import '../../data/local/simple_store.dart';
 import '../../shared/widgets/states.dart';
 import '../../features/schedule/alarm_prefs.dart';
 
-class ReminderTab extends ConsumerWidget {
+class ReminderTab extends ConsumerStatefulWidget {
   const ReminderTab({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReminderTab> createState() => _State();
+}
+
+class _State extends ConsumerState<ReminderTab> with WidgetsBindingObserver {
+  bool _exact = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _check();
+    Future.microtask(() async {
+      await ref.read(simpleStoreProvider).rescheduleAll();
+      ref.invalidate(remindersProvider);
+    });
+  }
+
+  Future<void> _check() async {
+    final perm = await AlarmService().permissions();
+    if (mounted) setState(() => _exact = perm['exactAlarm'] ?? true);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(simpleStoreProvider).rescheduleAll();
+      ref.invalidate(remindersProvider);
+      _check();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(remindersProvider);
     return SafeArea(
       child: Column(
@@ -33,11 +73,35 @@ class ReminderTab extends ConsumerWidget {
               ],
             ),
           ),
+          if (!_exact)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: JogloColors.izinBg, borderRadius: BorderRadius.circular(10)),
+                child: Row(
+                  children: [
+                    const Expanded(
+                        child: Text(
+                            'Izin presisi mati. Bunyi bisa telat. Nyalakan agar tepat menit.')),
+                    TextButton(
+                      onPressed: () async {
+                        await AlarmService().openSettings();
+                        _check();
+                      },
+                      child: const Text('Buka'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(remindersProvider);
                 await ref.read(simpleStoreProvider).rescheduleAll();
+                await _check();
               },
               child: async.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -49,6 +113,7 @@ class ReminderTab extends ConsumerWidget {
                       title: 'Belum ada pengingat',
                       desc: 'Buat yang pertama. Atur jam, pilih suara, tes bunyi.',
                       actionLabel: 'Tambah',
+                      icon: Icons.add_alarm_outlined,
                       onAction: () => context.push('/reminder/new'),
                     );
                   }
@@ -66,7 +131,7 @@ class ReminderTab extends ConsumerWidget {
                           ),
                           title: Text(r.title.isEmpty ? 'Pengingat' : r.title),
                           subtitle: Text(
-                              '${wibDay(r.whenUtc)} ${wibHm(r.whenUtc)} WIB . ${r.daily ? 'Tiap hari' : 'Sekali'} . ${_soundName(r.sound)}'),
+                              '${wibDay(r.whenUtc)} ${wibHm(r.whenUtc)} WIB . ${r.daily ? 'Tiap hari' : 'Sekali'} . ${_soundName(r.sound)} . ${r.level}%${r.vibrate ? '' : ' . Tanpa getar'}'),
                           trailing: Switch(
                             value: r.enabled,
                             onChanged: (v) async {

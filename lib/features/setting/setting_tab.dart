@@ -21,6 +21,7 @@ class _State extends ConsumerState<SettingTab> {
   bool _vibrate = true;
   bool _exact = true;
   bool _notif = true;
+  bool _hasVib = true;
 
   @override
   void initState() {
@@ -39,6 +40,7 @@ class _State extends ConsumerState<SettingTab> {
       _vibrate = p.getBool('default_vibrate') ?? true;
       _exact = perm['exactAlarm'] ?? true;
       _notif = perm['notifications'] ?? true;
+      _hasVib = perm['vibrator'] ?? true;
     });
   }
 
@@ -83,6 +85,15 @@ class _State extends ConsumerState<SettingTab> {
                     },
                     child: const Text('Buka'),
                   ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(_hasVib ? Icons.vibration : Icons.phonelink_erase_outlined,
+                      color: _hasVib ? JogloColors.success : JogloColors.warning),
+                  title: Text(_hasVib ? 'Mesin getar tersedia' : 'HP ini tidak ada getar'),
+                  subtitle: Text(_hasVib
+                      ? 'Bila tidak terasa, cek mode sunyi dan setelan getar HP.'
+                      : 'Emulator dan sebagian HP tanpa motor getar. Suara tetap bunyi.'),
                 ),
               ],
             ),

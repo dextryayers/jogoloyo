@@ -18,10 +18,10 @@ class AlarmReceiver : BroadcastReceiver() {
         val urgent = off <= 10
         if (urgent) {
             AlarmSoundPlayer.play(ctx, sound, level, vibrate)
-            NotificationHelper.show(ctx, key, off, title, room, urgent = true, silent = true)
+            NotificationHelper.show(ctx, key, off, title, room, urgent = true, silent = false, vibrate = vibrate)
         } else {
             if (vibrate) AlarmSoundPlayer.vibrate(ctx, strong = false)
-            NotificationHelper.show(ctx, key, off, title, room, urgent = false, silent = false)
+            NotificationHelper.show(ctx, key, off, title, room, urgent = false, silent = false, vibrate = vibrate)
         }
         AlarmStore.markFired(ctx, key, off)
     }

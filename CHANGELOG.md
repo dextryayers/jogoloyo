@@ -11,6 +11,7 @@
 - Kekerasan 100 125 150 175 200 persen plus boost gain native, getar bisa mati hidup per pengingat dan default.
 - Setting: minta izin notifikasi sistem plus status real, play stop di semua layar suara.
 - Ekspor catatan: PNG JPG JPEG plus pixel Low Normal High XHigh anti burik, PDF, simpan ke galeri.
+- Getar: amplitudo maksimal 255 plus pola lebih panjang, jalur cadangan via notifikasi, status mesin getar di Setting, getar mati hidup tetap dihormati di tes dan real.
 - Catatan anti hilang: autosave saat keluar tanpa tekan Simpan, tarik untuk refresh manual, buka lagi selalu muat plus tangani bila terhapus.
 - Izin notifikasi otomatis: diminta sendiri tepat setelah onboarding plus sekali lagi saat masuk setup notifikasi bila masih mati.
 - Tab Profil: hanya profil berfoto plus ubah profil dan waktu notifikasi. Tanpa kode PIN.
@@ -32,7 +33,10 @@
 - Alur baru: splash 2 detik, onboarding 3 halaman, setup guru (nama, mapel, foto kamera autosave), lalu dashboard 5 tab bawah.
 - Foto profil autosave lokal: langsung tersimpan saat diambil, tampil di bar profil dan menu Saya, bisa ganti kapan saja.
 - Dashboard: header logo plus versi, sapaan nama profil aktif, Les Berikutnya nyata, alarm, OTW, tagihan, pengumuman nyata.
-- Alarm Suara 1 sampai 6: pilih di sheet, ketuk untuk dengar langsung, H-10 otomatis bunyi plus getar kuat, Mode Keras 200 persen paksa volume maksimal lalu kembalikan.
+- Alarm Suara 1 sampai 6: pilih di form, ketuk untuk dengar langsung, otomatis bunyi plus getar tepat waktu.
+- Alarm selamat reboot: data bunyi disimpan native dan didaftar ulang otomatis plus hapus sekali tembak anti dobel.
+- Form waktu: default hari ini WIB, tanggal tidak bisa mundur, pesan jelas bila lewat atau mati, konfirmasi tampilkan jam, warning bila presisi mati.
+- Daftar: banner jujur bila presisi mati, info level dan getar per baris, resync tiap resume dan refresh.
 
 ## 1.0.0+1 - V.01.0 local deep
 

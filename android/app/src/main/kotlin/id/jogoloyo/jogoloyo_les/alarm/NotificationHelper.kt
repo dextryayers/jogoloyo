@@ -25,7 +25,10 @@ object NotificationHelper {
         )
     }
 
-    fun show(ctx: Context, key: String, offsetMin: Int, title: String, room: String, urgent: Boolean, silent: Boolean = false) {
+    // urgent: suara dari MediaPlayer, notifikasi tanpa suara tapi tetap getar
+    // sebagai jalur cadangan. silent=true mematikan getar notif juga, jadi
+    // tidak dipakai lagi. vibrate=false mematikan semua getar.
+    fun show(ctx: Context, key: String, offsetMin: Int, title: String, room: String, urgent: Boolean, silent: Boolean = false, vibrate: Boolean = true) {
         ensure(ctx)
         val text = when (offsetMin) {
             60 -> "60 menit lagi: $title di $room."
@@ -33,16 +36,22 @@ object NotificationHelper {
             10 -> "10 menit lagi masuk kelas. Siapkan buku dan alat tulis."
             else -> "Saatnya masuk: $title di $room."
         }
+        val strongPattern = longArrayOf(0, 1200, 400, 1200, 400, 1500)
         val b = NotificationCompat.Builder(ctx, if (urgent) CH_URGENT else CH_INFO)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(if (urgent) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-        if (silent) {
+        if (urgent) {
+            // Tanpa suara (MediaPlayer yang bunyi), tapi getar tetap jalan bila aktif.
+            if (vibrate) b.setVibrate(strongPattern)
+        } else if (silent) {
             b.setSilent(true)
-        } else {
+        } else if (vibrate) {
             b.setDefaults(Notification.DEFAULT_ALL)
+        } else {
+            b.setDefaults(Notification.DEFAULT_SOUND)
         }
         val n = b.build()
         try {
