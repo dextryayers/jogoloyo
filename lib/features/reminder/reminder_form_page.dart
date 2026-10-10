@@ -23,7 +23,8 @@ class _State extends ConsumerState<ReminderFormPage> {
   TimeOfDay _time = const TimeOfDay(hour: 6, minute: 0);
   bool _daily = false;
   String _sound = 'suara1';
-  bool _loud = true;
+  int _level = 200;
+  bool _vibrate = true;
   bool _enabled = true;
   bool _ready = false;
 
@@ -36,7 +37,8 @@ class _State extends ConsumerState<ReminderFormPage> {
   Future<void> _load() async {
     final store = ref.read(simpleStoreProvider);
     _sound = await store.defaultSound();
-    _loud = await store.defaultLoud();
+    _level = await store.defaultLevel();
+    _vibrate = await store.defaultVibrate();
     if (widget.reminderId != null) {
       final all = await store.loadReminders();
       final r = all.where((e) => e.id == widget.reminderId).firstOrNull;
@@ -47,7 +49,8 @@ class _State extends ConsumerState<ReminderFormPage> {
         _time = TimeOfDay(hour: w.hour, minute: w.minute);
         _daily = r.daily;
         _sound = r.sound;
-        _loud = r.loud;
+        _level = r.level;
+        _vibrate = r.vibrate;
         _enabled = r.enabled;
       }
     }

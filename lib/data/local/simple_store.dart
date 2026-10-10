@@ -21,7 +21,8 @@ class Reminder {
   final String title;
   final DateTime whenUtc;
   final String sound;
-  final bool loud;
+  final int level;
+  final bool vibrate;
   final bool enabled;
   final bool daily;
   const Reminder({
@@ -29,7 +30,8 @@ class Reminder {
     required this.title,
     required this.whenUtc,
     this.sound = 'suara1',
-    this.loud = true,
+    this.level = 200,
+    this.vibrate = true,
     this.enabled = true,
     this.daily = false,
   });
@@ -39,20 +41,31 @@ class Reminder {
         'title': title,
         'iso': whenUtc.toIso8601String(),
         'sound': sound,
-        'loud': loud,
+        'level': level,
+        'vibrate': vibrate,
         'enabled': enabled,
         'daily': daily,
       };
 
-  static Reminder fromJson(Map<String, dynamic> m) => Reminder(
-        id: m['id'] as String,
-        title: m['title'] as String? ?? '',
-        whenUtc: DateTime.parse(m['iso'] as String),
-        sound: m['sound'] as String? ?? 'suara1',
-        loud: m['loud'] as bool? ?? true,
-        enabled: m['enabled'] as bool? ?? true,
-        daily: m['daily'] as bool? ?? false,
-      );
+  static Reminder fromJson(Map<String, dynamic> m) {
+    var level = 200;
+    final lv = m['level'];
+    if (lv is int && [100, 125, 150, 175, 200].contains(lv)) {
+      level = lv;
+    } else if (m['loud'] == false) {
+      level = 100;
+    }
+    return Reminder(
+      id: m['id'] as String,
+      title: m['title'] as String? ?? '',
+      whenUtc: DateTime.parse(m['iso'] as String),
+      sound: m['sound'] as String? ?? 'suara1',
+      level: level,
+      vibrate: m['vibrate'] as bool? ?? true,
+      enabled: m['enabled'] as bool? ?? true,
+      daily: m['daily'] as bool? ?? false,
+    );
+  }
 }
 
 class Note {
@@ -125,9 +138,17 @@ class SimpleStore {
     return p.getString('default_sound') ?? 'suara1';
   }
 
-  Future<bool> defaultLoud() async {
+  Future<int> defaultLevel() async {
     final p = await SharedPreferences.getInstance();
-    return p.getBool('default_loud') ?? true;
+    final v = p.getInt('default_level');
+    if (v != null && [100, 125, 150, 175, 200].contains(v)) return v;
+    if (p.getBool('default_loud') == false) return 100;
+    return 200;
+  }
+
+  Future<bool> defaultVibrate() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getBool('default_vibrate') ?? true;
   }
 
   // WIB HH:mm ke DateTime UTC hari ini.
@@ -157,7 +178,14 @@ class SimpleStore {
         }
         if (when != r.whenUtc) {
           r = Reminder(
-              id: r.id, title: r.title, whenUtc: when, sound: r.sound, loud: r.loud, enabled: r.enabled, daily: true);
+              id: r.id,
+              title: r.title,
+              whenUtc: when,
+              sound: r.sound,
+              level: r.level,
+              vibrate: r.vibrate,
+              enabled: r.enabled,
+              daily: true);
           changed = true;
         }
       }
@@ -174,7 +202,8 @@ class SimpleStore {
         title: r.title.isEmpty ? 'Pengingat' : r.title,
         room: '',
         sound: r.sound,
-        loud: r.loud,
+        level: r.level,
+        vibrate: r.vibrate,
       );
       if (ok) sch++;
     }

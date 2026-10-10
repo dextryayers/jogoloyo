@@ -4,17 +4,27 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
-// Pemutar suara alarm: bunyi otomatis dari aset lokal plus getar HP.
-// Mode Keras: paksa volume STREAM_ALARM ke maksimal saat bunyi, lalu kembalikan.
+// Pemutar suara alarm: bunyi otomatis dari aset lokal plus getar opsional.
+// Level 100 persen = pakai volume HP. 125 sampai 200 persen = paksa volume
+// maksimal plus penguat gain agar jauh lebih keras. Volume dikembalikan selesai.
 // Suara: suara1 sampai suara6 dari assets/music. Tanpa server, tanpa unduhan.
 object AlarmSoundPlayer {
     private var player: MediaPlayer? = null
+    private var enhancer: LoudnessEnhancer? = null
     private var prevVolume = -1
+
+    // Level ke gain millibel: 125->194, 150->352, 175->486, 200->602.
+    fun gainMb(level: Int): Int {
+        if (level <= 100) return 0
+        val db = 20.0 * kotlin.math.log10(level / 100.0)
+        return (db * 100).toInt().coerceIn(0, 1000)
+    }
 
     fun assetPath(sound: String): String = when (sound) {
         "suara1" -> "flutter_assets/assets/music/suara1.mp3"
@@ -27,10 +37,10 @@ object AlarmSoundPlayer {
     }
 
     @Synchronized
-    fun play(ctx: Context, sound: String, loud: Boolean) {
+    fun play(ctx: Context, sound: String, level: Int, vibrate: Boolean) {
         stop(ctx, restore = false)
-        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        if (loud) {
+        if (level > 100) {
+            val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             try {
                 prevVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
                 val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
@@ -39,7 +49,7 @@ object AlarmSoundPlayer {
                 prevVolume = -1
             }
         }
-        vibrate(ctx, strong = true)
+        if (vibrate) vibrate(ctx, strong = true)
         try {
             val fd = ctx.assets.openFd(assetPath(sound))
             val mp = MediaPlayer().apply {
@@ -52,16 +62,23 @@ object AlarmSoundPlayer {
                 setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
                 fd.close()
                 setOnCompletionListener {
-                    restoreVolume(ctx)
+                    releaseAll(ctx)
                     release()
                     if (player === it) player = null
                 }
                 prepare()
+                try {
+                    val g = gainMb(level)
+                    if (g > 0) {
+                        enhancer = LoudnessEnhancer(audioSessionId).apply { setTargetGain(g) }
+                    }
+                } catch (e: Exception) {
+                }
                 start()
             }
             player = mp
         } catch (e: Exception) {
-            restoreVolume(ctx)
+            releaseAll(ctx)
         }
     }
 
@@ -75,9 +92,20 @@ object AlarmSoundPlayer {
         } catch (e: Exception) {
         } finally {
             player = null
+            releaseAll(ctx)
             if (restore) restoreVolume(ctx)
         }
         cancelVibrate(ctx)
+    }
+
+    private fun releaseAll(ctx: Context) {
+        try {
+            enhancer?.release()
+        } catch (e: Exception) {
+        } finally {
+            enhancer = null
+            restoreVolume(ctx)
+        }
     }
 
     private fun restoreVolume(ctx: Context) {

@@ -13,7 +13,8 @@ class AlarmService {
     required String title,
     required String room,
     String sound = 'suara1',
-    bool loud = true,
+    int level = 200,
+    bool vibrate = true,
   }) async {
     try {
       await _ch.invokeMethod('scheduleSessionAlarm', {
@@ -23,7 +24,8 @@ class AlarmService {
         'title': title,
         'room': room,
         'sound': sound,
-        'loud': loud,
+        'level': level,
+        'vibrate': vibrate,
       });
       return true;
     } on PlatformException {
@@ -42,9 +44,10 @@ class AlarmService {
     }
   }
 
-  Future<bool> test(String kind, {String sound = 'suara1', bool loud = true}) async {
+  Future<bool> test(String kind, {String sound = 'suara1', int level = 200, bool vibrate = true}) async {
     try {
-      await _ch.invokeMethod('testAlarm', {'kind': kind, 'sound': sound, 'loud': loud});
+      await _ch.invokeMethod(
+          'testAlarm', {'kind': kind, 'sound': sound, 'level': level, 'vibrate': vibrate});
       return true;
     } on PlatformException {
       return false;

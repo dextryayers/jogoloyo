@@ -27,8 +27,10 @@ class MainActivity : FlutterActivity() {
                     val title = call.argument<String>("title") ?: "Jadwal les"
                     val room = call.argument<String>("room") ?: ""
                     val sound = call.argument<String>("sound") ?: "suara1"
-                    val loud = call.argument<Boolean>("loud") ?: true
-                    val ok = AlarmScheduler.schedule(this, key, iso, off, title, room, sound, loud)
+                    val level = (call.argument<Int>("level")
+                        ?: if (call.argument<Boolean>("loud") != false) 200 else 100)
+                    val vibrate = call.argument<Boolean>("vibrate") ?: true
+                    val ok = AlarmScheduler.schedule(this, key, iso, off, title, room, sound, level, vibrate)
                     if (ok) res.success(true) else res.error("SCHEDULER_BUSY", "Gagal menjadwalkan. Coba lagi.", null)
                 }
                 "cancelSessionAlarm" -> {
@@ -43,11 +45,14 @@ class MainActivity : FlutterActivity() {
                 "testAlarm" -> {
                     val kind = call.argument<String>("kind") ?: "info"
                     val sound = call.argument<String>("sound") ?: "suara1"
-                    val loud = call.argument<Boolean>("loud") ?: true
+                    val level = (call.argument<Int>("level")
+                        ?: if (call.argument<Boolean>("loud") != false) 200 else 100)
+                    val vibrate = call.argument<Boolean>("vibrate") ?: true
                     if (kind == "urgent") {
-                        AlarmSoundPlayer.play(this, sound, loud)
+                        AlarmSoundPlayer.play(this, sound, level, vibrate)
                         NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = true)
                     } else {
+                        if (vibrate) AlarmSoundPlayer.vibrate(this, strong = false)
                         NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false)
                     }
                     res.success(true)

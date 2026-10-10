@@ -18,7 +18,8 @@ object AlarmScheduler {
         title: String,
         room: String,
         sound: String = "suara1",
-        loud: Boolean = true
+        level: Int = 200,
+        vibrate: Boolean = true
     ): Boolean {
         return try {
             val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -33,7 +34,8 @@ object AlarmScheduler {
                     putExtra("title", title)
                     putExtra("room", room)
                     putExtra("sound", sound)
-                    putExtra("loud", loud)
+                    putExtra("level", level)
+                    putExtra("vibrate", vibrate)
                 }
                 val pi = PendingIntent.getBroadcast(
                     ctx, req, i,
