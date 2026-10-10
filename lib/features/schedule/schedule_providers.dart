@@ -1,10 +1,10 @@
 // Provider jadwal mingguan. WeekStart dihitung Senin 00.00 UTC.
 // Filter: Semua, Saya, Berlangsung, Selesai, Izin.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/local/app_db.dart';
-import '../data/local/les_store.dart';
-import '../data/local/session_local_repo.dart';
-import '../data/local/seed.dart';
+import '../../data/local/app_db.dart';
+import '../../data/local/les_store.dart';
+import '../../data/local/session_local_repo.dart';
+import '../../data/local/seed.dart';
 
 final sessionRepoProvider = Provider((ref) => SessionLocalRepo(ref.watch(appDbProvider)));
 

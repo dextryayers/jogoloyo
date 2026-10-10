@@ -1,5 +1,6 @@
 // Tab Saya: akun, tagihan, alarm, sync paket, backup. Semua lokal.
 import 'package:flutter/material.dart';
+import '../../core/alarm/alarm_service.dart';
 import '../../data/local/parent_link.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -85,8 +86,30 @@ class _ProfileTabState extends State<ProfileTab> {
                 ListTile(
                   leading: const Icon(Icons.alarm),
                   title: const Text('Tes Alarm'),
-                  subtitle: const Text('Pastikan bunyi keluar sebelum hari H.'),
-                  trailing: ElevatedButton(onPressed: () {}, child: const Text('Tes')),
+                  subtitle: const Text(
+                      'Pastikan bunyi keluar sebelum hari H. Tes info dan urgent.'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => AlarmService().test('info'),
+                        child: const Text('Info'),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => AlarmService().test('urgent'),
+                        child: const Text('Urgent'),
+                      ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.battery_saver_outlined),
+                  title: const Text('Izin dan Baterai'),
+                  subtitle: const Text(
+                      'Xiaomi Autostart. Samsung Unrestricted. Oppo Vivo background allow.'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => AlarmService().openSettings(),
                 ),
                 const Divider(height: 1),
                 ListTile(

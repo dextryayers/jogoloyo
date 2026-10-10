@@ -71,4 +71,172 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                     selected: f == filter,
                     onSelected: (_) =>
                         ref.read(scheduleFilterProvider.notifier).state = f,
-  
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(weekSessionsProvider);
+                final resync = AlarmResync(ref.read(appDbProvider), AlarmService());
+                await resync.run();
+              },
+              child: async.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => ErrorView(
+                  message: 'Gagal membuka jadwal: $e',
+                  onRetry: () => ref.invalidate(weekSessionsProvider),
+                ),
+                data: (list) {
+                  final shown = _applyFilter(list, filter);
+                  if (shown.isEmpty) {
+                    return EmptyState(
+                      title: 'Belum ada jadwal',
+                      desc:
+                          'Belum ada jadwal pada filter ini. Ubah minggu atau hubungi admin jika ini keliru.',
+                      actionLabel: 'Ke Minggu Ini',
+                      onAction: () {
+                        final now = DateTime.now().toUtc();
+                        final monday = now.subtract(Duration(days: now.weekday - 1));
+                        ref.read(weekStartProvider.notifier).state =
+                            DateTime.utc(monday.year, monday.month, monday.day);
+                      },
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: shown.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (c, i) {
+                      final s = shown[i];
+                      final status = _toStatus(s.status, s.startUtc, s.endUtc);
+                      return FutureBuilder(
+                        future: AlarmPrefs.load(s.id, 'siswa-sinta'),
+                        builder: (cc, snap) {
+                          final on = snap.data?.enabled ?? true;
+                          return SessionCard(
+                            info: SessionInfo(
+                              id: s.id,
+                              subject: s.subject,
+                              teacher: s.teacherId == 'guru-rina'
+                                  ? 'Ustazah Rina'
+                                  : s.teacherId == 'guru-dewi'
+                                      ? 'Ustazah Dewi'
+                                      : s.teacherId,
+                              teacherVerified: true,
+                              startUtc: s.startUtc,
+                              endUtc: s.endUtc,
+                              room: s.room,
+                              status: status,
+                              alarmOn: on,
+                            ),
+                            onTap: () => context.push('/schedule/${s.id}'),
+                            onAlarm: () => context.push('/schedule/${s.id}'),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<dynamic> _applyFilter(List<dynamic> list, String f) {
+    if (f == 'Semua' || f == 'Saya') return list;
+    final now = DateTime.now().toUtc();
+    if (f == 'Berlangsung') {
+      return list
+          .where((e) =>
+              e.startUtc.isBefore(now) &&
+              e.endUtc.isAfter(now) &&
+              e.status != 'cancelled')
+          .toList();
+    }
+    if (f == 'Selesai') {
+      return list.where((e) => e.endUtc.isBefore(now) || e.status == 'done').toList();
+    }
+    return list;
+  }
+
+  SessionStatus _toStatus(String raw, DateTime start, DateTime end) {
+    if (raw == 'cancelled') return SessionStatus.cancelled;
+    if (raw == 'done') return SessionStatus.done;
+    final now = DateTime.now().toUtc();
+    if (start.isBefore(now) && end.isAfter(now)) return SessionStatus.ongoing;
+    if (end.isBefore(now)) return SessionStatus.done;
+    return SessionStatus.scheduled;
+  }
+}
+
+class _WeekStrip extends StatelessWidget {
+  final DateTime week;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final VoidCallback onToday;
+  const _WeekStrip(
+      {required this.week, required this.onPrev, required this.onNext, required this.onToday});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = List.generate(7, (i) => week.add(Duration(days: i)));
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              IconButton(onPressed: onPrev, icon: const Icon(Icons.chevron_left)),
+              Expanded(
+                child: Text(
+                  '${Wib.dmy(days.first)} - ${Wib.dmy(days.last)}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right)),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: days.map((d) {
+              final isToday = DateTime.now().toUtc().day == d.day &&
+                  DateTime.now().toUtc().month == d.month;
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isToday ? JogloColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: JogloColors.line),
+                ),
+                child: Column(
+                  children: [
+                    Text(['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg'][d.weekday - 1],
+                        style: TextStyle(
+                            color: isToday ? Colors.white : JogloColors.muted,
+                            fontSize: 12)),
+                    Text('${d.day}',
+                        style: TextStyle(
+                            color: isToday ? Colors.white : JogloColors.ink,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        TextButton(onPressed: onToday, child: const Text('Kembali ke minggu ini')),
+      ],
+    );
+  }
+}

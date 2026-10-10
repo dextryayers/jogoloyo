@@ -1,9 +1,10 @@
 // Resync alarm 14 hari ke depan dari DB lokal. Anti alarm hantu.
 // Dipanggil saat app dibuka, setelah import paket, setelah restore, setelah ubah jadwal.
 // Aturan: sesi batal atau lewat -> cancel. Sesi aktif + enabled -> schedule ulang.
-import '../../core/alarm/alarm_service.dart';
+import 'package:drift/drift.dart';
+import 'alarm_service.dart';
 import '../../data/local/app_db.dart';
-import 'alarm_prefs.dart';
+import '../../features/schedule/alarm_prefs.dart';
 
 class AlarmResync {
   final AppDb db;

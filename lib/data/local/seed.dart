@@ -2,7 +2,7 @@
 // Guru demo: Rina Matematika, Dewi Biologi. 6 sesi minggu ini di Ruang A dan B.
 import 'package:drift/drift.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../core/security/pin_hash.dart';
+import '../../core/security/pin_hash.dart';
 import 'app_db.dart';
 
 Future<void> seedIfEmpty(AppDb db, FlutterSecureStorage secure) async {

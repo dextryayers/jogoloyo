@@ -1,10 +1,11 @@
 // Router 5 tab bawah dengan StatefulShellRoute. Tanpa auth server.
-// Guard lokal disederhanakan untuk Fase 0.3: langsung ke home.
-// Fase 1 akan tambah guard PIN dan setup owner.
+// Detail sesi dan form di luar shell agar ada tombol kembali yang jelas.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/home_tab.dart';
 import '../features/schedule/schedule_tab.dart';
+import '../features/schedule/session_detail_page.dart';
+import '../features/schedule/session_form_page.dart';
 import '../features/teacher/teacher_tab.dart';
 import '../features/material/material_tab.dart';
 import '../features/profile/profile_tab.dart';
@@ -16,6 +17,20 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(path: '/setup', builder: (c, s) => const SetupOwnerPage()),
     GoRoute(path: '/pin', builder: (c, s) => const PinPage()),
+    GoRoute(
+      path: '/schedule/new',
+      builder: (c, s) => const SessionFormPage(),
+    ),
+    GoRoute(
+      path: '/schedule/:id',
+      builder: (c, s) => SessionDetailPage(sessionId: s.pathParameters['id']!),
+      routes: [
+        GoRoute(
+          path: 'edit',
+          builder: (c, s) => SessionFormPage(sessionId: s.pathParameters['id']),
+        ),
+      ],
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return ScaffoldWithTabs(shell: shell);
