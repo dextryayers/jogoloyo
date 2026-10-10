@@ -47,6 +47,7 @@ flutter:
   assets:
     - assets/strings/
     - assets/logo.png
+    - assets/music/
 
 flutter_launcher_icons:
   android: true

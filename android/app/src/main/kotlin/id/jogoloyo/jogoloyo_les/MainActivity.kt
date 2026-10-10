@@ -8,6 +8,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import id.jogoloyo.jogoloyo_les.alarm.AlarmScheduler
+import id.jogoloyo.jogoloyo_les.alarm.AlarmSoundPlayer
 import id.jogoloyo.jogoloyo_les.alarm.AlarmStore
 import id.jogoloyo.jogoloyo_les.alarm.NotificationHelper
 
@@ -25,7 +26,9 @@ class MainActivity : FlutterActivity() {
                     val off = (call.argument<List<Int>>("offsetsMinutes") ?: listOf(30, 10))
                     val title = call.argument<String>("title") ?: "Jadwal les"
                     val room = call.argument<String>("room") ?: ""
-                    val ok = AlarmScheduler.schedule(this, key, iso, off, title, room)
+                    val sound = call.argument<String>("sound") ?: "suara1"
+                    val loud = call.argument<Boolean>("loud") ?: true
+                    val ok = AlarmScheduler.schedule(this, key, iso, off, title, room, sound, loud)
                     if (ok) res.success(true) else res.error("SCHEDULER_BUSY", "Gagal menjadwalkan. Coba lagi.", null)
                 }
                 "cancelSessionAlarm" -> {
@@ -39,7 +42,14 @@ class MainActivity : FlutterActivity() {
                 }
                 "testAlarm" -> {
                     val kind = call.argument<String>("kind") ?: "info"
-                    NotificationHelper.show(this, "test", if (kind == "urgent") 10 else 30, "Tes Alarm", "Ruang A", kind == "urgent")
+                    val sound = call.argument<String>("sound") ?: "suara1"
+                    val loud = call.argument<Boolean>("loud") ?: true
+                    if (kind == "urgent") {
+                        AlarmSoundPlayer.play(this, sound, loud)
+                        NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = true)
+                    } else {
+                        NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false)
+                    }
                     res.success(true)
                 }
                 "openExactAlarmSettings" -> {

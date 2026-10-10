@@ -1,5 +1,6 @@
 package id.jogoloyo.jogoloyo_les.alarm
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -7,8 +8,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
-// Kanal dan gaya notifikasi. Nada sopan, tanpa suara mengejutkan.
-// Full screen hanya untuk urgent dan jika izin diberikan.
+// Kanal dan gaya notifikasi. Urgent dibunyikan via MediaPlayer plus getar kuat,
+// sehingga notifikasinya silent agar tidak dobel. Info pakai suara dan getar sistem.
 object NotificationHelper {
     private const val CH_INFO = "jogoloyo_info"
     private const val CH_URGENT = "jogoloyo_urgent"
@@ -24,7 +25,7 @@ object NotificationHelper {
         )
     }
 
-    fun show(ctx: Context, key: String, offsetMin: Int, title: String, room: String, urgent: Boolean) {
+    fun show(ctx: Context, key: String, offsetMin: Int, title: String, room: String, urgent: Boolean, silent: Boolean = false) {
         ensure(ctx)
         val text = when (offsetMin) {
             60 -> "60 menit lagi: $title di $room."
@@ -32,13 +33,18 @@ object NotificationHelper {
             10 -> "10 menit lagi masuk kelas. Siapkan buku dan alat tulis."
             else -> "Saatnya masuk: $title di $room."
         }
-        val n = NotificationCompat.Builder(ctx, if (urgent) CH_URGENT else CH_INFO)
+        val b = NotificationCompat.Builder(ctx, if (urgent) CH_URGENT else CH_INFO)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(if (urgent) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-            .build()
+        if (silent) {
+            b.setSilent(true)
+        } else {
+            b.setDefaults(Notification.DEFAULT_ALL)
+        }
+        val n = b.build()
         try {
             NotificationManagerCompat.from(ctx).notify(key.hashCode(), n)
         } catch (e: SecurityException) {

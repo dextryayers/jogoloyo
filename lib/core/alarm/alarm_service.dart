@@ -12,6 +12,8 @@ class AlarmService {
     required List<int> offsets,
     required String title,
     required String room,
+    String sound = 'suara1',
+    bool loud = true,
   }) async {
     try {
       await _ch.invokeMethod('scheduleSessionAlarm', {
@@ -20,6 +22,8 @@ class AlarmService {
         'offsetsMinutes': offsets,
         'title': title,
         'room': room,
+        'sound': sound,
+        'loud': loud,
       });
       return true;
     } on PlatformException {
@@ -38,9 +42,9 @@ class AlarmService {
     }
   }
 
-  Future<bool> test(String kind) async {
+  Future<bool> test(String kind, {String sound = 'suara1', bool loud = true}) async {
     try {
-      await _ch.invokeMethod('testAlarm', {'kind': kind});
+      await _ch.invokeMethod('testAlarm', {'kind': kind, 'sound': sound, 'loud': loud});
       return true;
     } on PlatformException {
       return false;

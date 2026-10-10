@@ -16,7 +16,9 @@ object AlarmScheduler {
         startUtcIso: String,
         offsetsMinutes: List<Int>,
         title: String,
-        room: String
+        room: String,
+        sound: String = "suara1",
+        loud: Boolean = true
     ): Boolean {
         return try {
             val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -30,6 +32,8 @@ object AlarmScheduler {
                     putExtra("offsetMin", off)
                     putExtra("title", title)
                     putExtra("room", room)
+                    putExtra("sound", sound)
+                    putExtra("loud", loud)
                 }
                 val pi = PendingIntent.getBroadcast(
                     ctx, req, i,
