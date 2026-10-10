@@ -1,5 +1,15 @@
 # Changelog Les Jogoloyo
 
+## 1.0.0+1 - V.02 simpel ramping
+
+- Hapus total halaman lama: jadwal, guru, absensi, materi, billing, sync, pin, wipe. Sisa 43 file Dart.
+- Dependensi ramping: qr, scanner, file picker, pdf, csv, archive, open file dibuang. APK jauh lebih ringan.
+- 4 tab bawah: Beranda, Catatan, Setting, Profil. Daftar pengingat halaman sendiri via shortcut.
+- Dashboard plus 6 shortcut: Pengingat Baru, Daftar Pengingat, Catatan Baru, Tes Bunyi, Waktu Notifikasi, Profil Saya.
+- Tab Setting: izin presisi, suara default, mode keras, tes, ubah waktu, lapor masalah plus log, reset.
+- Lapor Masalah: form judul rincian, simpan lokal, bagikan plus file log ke admin.
+- Tab Profil: hanya profil berfoto plus ubah profil dan waktu notifikasi. Tanpa kode PIN.
+
 ## 1.0.0+1 - V.02 simpel
 
 - Rombak total: hanya pengingat plus catatan. Fitur lama dihapus dari navigasi.

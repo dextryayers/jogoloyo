@@ -19,8 +19,8 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('Beranda'), findsOneWidget);
-    expect(find.text('Pengingat'), findsWidgets);
     expect(find.text('Catatan'), findsWidgets);
-    expect(find.text('Saya'), findsWidgets);
+    expect(find.text('Setting'), findsWidgets);
+    expect(find.text('Profil'), findsWidgets);
   });
 }

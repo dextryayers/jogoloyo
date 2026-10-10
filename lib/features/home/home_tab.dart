@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/theme.dart';
+import '../../core/alarm/alarm_service.dart';
 import '../../core/log/app_log.dart';
 import '../../data/local/simple_store.dart';
 import '../../shared/widgets/app_logo.dart';
@@ -113,22 +114,51 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
               },
             ),
             const SizedBox(height: 12),
-            Row(
+            const Text('Jalan Pintas',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: JogloColors.muted)),
+            const SizedBox(height: 8),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1.1,
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => context.push('/reminder/new'),
-                    icon: const Icon(Icons.add_alarm_outlined),
-                    label: const Text('Pengingat'),
-                  ),
+                _Shortcut(
+                  icon: Icons.add_alarm_outlined,
+                  label: 'Pengingat Baru',
+                  onTap: () => context.push('/reminder/new'),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/notes'),
-                    icon: const Icon(Icons.note_add_outlined),
-                    label: const Text('Catatan'),
-                  ),
+                _Shortcut(
+                  icon: Icons.alarm_outlined,
+                  label: 'Daftar Pengingat',
+                  onTap: () => context.push('/reminders'),
+                ),
+                _Shortcut(
+                  icon: Icons.note_add_outlined,
+                  label: 'Catatan Baru',
+                  onTap: () => context.push('/note/new'),
+                ),
+                _Shortcut(
+                  icon: Icons.volume_up_outlined,
+                  label: 'Tes Bunyi',
+                  onTap: () async {
+                    final p = await SharedPreferences.getInstance();
+                    await AlarmService().test('urgent',
+                        sound: p.getString('default_sound') ?? 'suara1',
+                        loud: p.getBool('default_loud') ?? true);
+                  },
+                ),
+                _Shortcut(
+                  icon: Icons.notifications_outlined,
+                  label: 'Waktu Notifikasi',
+                  onTap: () => context.push('/notif-setup'),
+                ),
+                _Shortcut(
+                  icon: Icons.person_outline,
+                  label: 'Profil Saya',
+                  onTap: () => context.go('/profile'),
                 ),
               ],
             ),
@@ -169,5 +199,33 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
     if (h < 15) return 'Selamat siang, $_name.';
     if (h < 19) return 'Selamat sore, $_name.';
     return 'Selamat malam, $_name.';
+  }
+}
+
+class _Shortcut extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _Shortcut({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: JogloColors.primary, size: 28),
+              const SizedBox(height: 6),
+              Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
