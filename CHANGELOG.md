@@ -1,5 +1,12 @@
 # Changelog Les Jogoloyo
 
+## 1.0.0+1 - V.01.0 local deep + logo
+
+- Logo resmi assets/logo.png: icon launcher Android, splash native, splash dalam app, onboarding, setup, header dashboard.
+- Alur baru: splash 2 detik, onboarding 3 halaman, setup guru (nama, mapel, foto kamera autosave), lalu dashboard 5 tab bawah.
+- Foto profil autosave lokal: langsung tersimpan saat diambil, tampil di bar profil dan menu Saya, bisa ganti kapan saja.
+- Dashboard: header logo plus versi, sapaan nama profil aktif, Les Berikutnya nyata, alarm, OTW, tagihan, pengumuman nyata.
+
 ## 1.0.0+1 - V.01.0 local deep
 
 - Bootstrap: binding, zona Asia/Jakarta, ErrorWidget Indonesia, log lokal 100 baris.
