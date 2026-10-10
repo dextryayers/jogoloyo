@@ -72,7 +72,12 @@ class _State extends ConsumerState<NotesTab> {
               ),
             ),
             Expanded(
-              child: async.when(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(notesProvider);
+                  await ref.read(notesProvider.future);
+                },
+                child: async.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => ErrorView(
                     message: 'Gagal: $e', onRetry: () => ref.invalidate(notesProvider)),
@@ -191,6 +196,7 @@ class _State extends ConsumerState<NotesTab> {
                     },
                   );
                 },
+              ),
               ),
             ),
           ],

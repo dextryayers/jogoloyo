@@ -18,6 +18,7 @@ class _State extends ConsumerState<NoteEditorPage> {
   final _title = TextEditingController();
   final _body = TextEditingController();
   bool _ready = false;
+  bool _saved = false;
   DateTime? _updated;
   int _words = 0;
 
@@ -60,6 +61,19 @@ class _State extends ConsumerState<NoteEditorPage> {
     super.dispose();
   }
 
+  // Autosave: bila keluar tanpa tekan Simpan dan ada isi, simpan diam diam.
+  // Dijamin tidak ada tulisan hilang.
+  Future<void> _autoSave() async {
+    if (_saved) return;
+    if (_title.text.trim().isEmpty && _body.text.trim().isEmpty) return;
+    await ref.read(simpleStoreProvider).saveNote(
+          id: widget.noteId,
+          title: _title.text,
+          body: _body.text,
+        );
+    ref.invalidate(notesProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
@@ -67,7 +81,12 @@ class _State extends ConsumerState<NoteEditorPage> {
           appBar: AppBar(title: const Text('Catatan')),
           body: const Center(child: CircularProgressIndicator()));
     }
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) await _autoSave();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(widget.noteId == null ? 'Catatan Baru' : 'Ubah Catatan'),
         actions: [
@@ -172,6 +191,7 @@ class _State extends ConsumerState<NoteEditorPage> {
                           title: _title.text,
                           body: _body.text,
                         );
+                    _saved = true;
                     ref.invalidate(notesProvider);
                     if (!context.mounted) return;
                     context.pop();
@@ -185,6 +205,7 @@ class _State extends ConsumerState<NoteEditorPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
