@@ -19,7 +19,31 @@ class ScheduleTab extends ConsumerStatefulWidget {
   ConsumerState<ScheduleTab> createState() => _ScheduleTabState();
 }
 
-class _ScheduleTabState extends ConsumerState<ScheduleTab> {
+class _ScheduleTabState extends ConsumerState<ScheduleTab> with WidgetsBindingObserver {
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(weekSessionsProvider);
+      AlarmResync(ref.read(appDbProvider), AlarmService()).run();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final week = ref.watch(weekStartProvider);
@@ -59,6 +83,42 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                   DateTime.utc(monday.year, monday.month, monday.day);
             },
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _search,
+              decoration: const InputDecoration(
+                hintText: 'Cari mapel, guru, atau ruang',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
+            ),
+          ),
+          FutureBuilder(
+            future: AlarmService().permissions(),
+            builder: (c, snap) {
+              final exact = snap.data?['exactAlarm'] ?? true;
+              if (exact) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: JogloColors.izinBg, borderRadius: BorderRadius.circular(10)),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                          child: Text('Alarm tidak presisi. Aktifkan izin agar H-30 dan H-10 tepat.')),
+                      TextButton(
+                        onPressed: () => AlarmService().openSettings(),
+                        child: const Text('Buka'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -90,7 +150,13 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                   onRetry: () => ref.invalidate(weekSessionsProvider),
                 ),
                 data: (list) {
-                  final shown = _applyFilter(list, filter);
+                  var shown = _applyFilter(list, filter);
+                  if (_q.isNotEmpty) {
+                    shown = shown.where((e) {
+                      final s = '${e.subject} ${e.teacherId} ${e.room}'.toLowerCase();
+                      return s.contains(_q);
+                    }).toList();
+                  }
                   if (shown.isEmpty) {
                     return EmptyState(
                       title: 'Belum ada jadwal',

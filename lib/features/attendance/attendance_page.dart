@@ -1,9 +1,10 @@
-// Provider absensi dan halaman rekap per sesi F5.2.
-// Tombol guru: Tampilkan Kode dan Check In. Tombol siswa: Pindai.
-// Admin: Ekspor CSV dan Jalankan Auto Alpa.
+// Provider absensi dan halaman rekap per sesi F5 deep.
+// Auto alpa jalan otomatis saat halaman dibuka plus tombol manual.
+// Rekap bulan berjalan HISA untuk siswa-sinta tampil di atas.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/log/app_log.dart';
 import '../../data/local/les_store.dart';
 import 'attendance_repo.dart';
 import 'export_service.dart';
@@ -11,30 +12,56 @@ import 'export_service.dart';
 final attendanceRepoProvider = Provider((ref) => AttendanceRepo(ref.watch(appDbProvider)));
 final exportProvider = Provider((ref) => ExportService(ref.watch(appDbProvider)));
 
-class AttendancePage extends ConsumerWidget {
+class AttendancePage extends ConsumerStatefulWidget {
   final String sessionId;
   const AttendancePage({super.key, required this.sessionId});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AttendancePage> createState() => _State();
+}
+
+class _State extends ConsumerState<AttendancePage> {
+  bool _autoDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      final n = await ref.read(attendanceRepoProvider).autoAlpa();
+      AppLog.record('auto_alpa', '$n');
+      if (mounted) setState(() => _autoDone = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final repo = ref.watch(attendanceRepoProvider);
+    final now = DateTime.now();
     return Scaffold(
       appBar: AppBar(title: const Text('Absensi Sesi')),
       body: FutureBuilder(
-        future: repo.bySession(sessionId),
+        future: Future.wait([repo.bySession(widget.sessionId), repo.recapMonth('siswa-sinta', now.year, now.month)]),
         builder: (c, snap) {
-          final list = snap.data ?? [];
+          final list = (snap.data?[0] as List?)?.cast() ?? [];
+          final recap = (snap.data?[1] as Map<String, int>?) ?? {'hadir': 0, 'izin': 0, 'sakit': 0, 'alpa': 0};
           final hadir = list.where((e) => e.status == 'hadir').length;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Card(
                 child: ListTile(
+                  leading: const Icon(Icons.calendar_month_outlined),
+                  title: Text('Bulan ini H:${recap['hadir']} I:${recap['izin']} S:${recap['sakit']} A:${recap['alpa']}'),
+                  subtitle: Text(_autoDone ? 'Auto alpa H+30 sudah jalan otomatis.' : 'Menjalankan auto alpa...'),
+                ),
+              ),
+              Card(
+                child: ListTile(
                   leading: const Icon(Icons.groups_outlined),
-                  title: Text('Hadir: $hadir dari ${list.length} catatan'),
+                  title: Text('Sesi ini hadir: $hadir dari ${list.length} catatan'),
                   subtitle: const Text('Izin dan sakit tidak dihitung alpa.'),
                   trailing: TextButton(
                     onPressed: () async {
-                      final f = await ref.read(exportProvider).attendanceCsv(sessionId: sessionId);
+                      final f = await ref.read(exportProvider).attendanceCsv(sessionId: widget.sessionId);
                       await ref.read(exportProvider).share(f);
                     },
                     child: const Text('CSV'),
@@ -45,7 +72,7 @@ class AttendancePage extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => context.push('/attendance/$sessionId/qr'),
+                      onPressed: () => context.push('/attendance/${widget.sessionId}/qr'),
                       icon: const Icon(Icons.qr_code),
                       label: const Text('Kode Guru'),
                     ),
@@ -53,7 +80,7 @@ class AttendancePage extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => context.push('/attendance/$sessionId/scan'),
+                      onPressed: () => context.push('/attendance/${widget.sessionId}/scan'),
                       icon: const Icon(Icons.qr_code_scanner),
                       label: const Text('Pindai'),
                     ),
@@ -79,17 +106,6 @@ class AttendancePage extends ConsumerWidget {
                     subtitle: Text('Guru tampilkan kode, siswa pindai di kelas.'),
                   ),
                 ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final n = await repo.autoAlpa();
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Auto alpa jalan. $n sesi ditandai.')));
-                },
-                icon: const Icon(Icons.auto_mode_outlined),
-                label: const Text('Jalankan Auto Alpa H+30'),
-              ),
             ],
           );
         },

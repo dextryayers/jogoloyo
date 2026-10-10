@@ -70,10 +70,10 @@ class _ProfileTabState extends State<ProfileTab> {
                       ElevatedButton(
                         onPressed: () async {
                           final messenger = ScaffoldMessenger.of(context);
-                          final child =
-                              await ParentLinkService().claim(_claim.text);
+                          final child = await ParentLinkService()
+                              .claim(code: _claim.text, parentId: 'ortu-ibu');
                           final msg = child == null
-                              ? 'Kode tidak valid atau kedaluwarsa.'
+                              ? 'Kode tidak valid, kedaluwarsa, atau batas tautan tercapai (maks 2 ortu per anak).'
                               : 'Tertaut ke anak: $child. Hanya bisa baca.';
                           if (!mounted) return;
                           messenger.showSnackBar(SnackBar(content: Text(msg)));

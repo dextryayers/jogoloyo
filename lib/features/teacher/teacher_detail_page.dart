@@ -1,6 +1,7 @@
 // Detail guru plus review admin. Foto besar, alasan jelas, audit tercatat.
 // Aksi sensitif butuh PIN owner? V.01.0 cukup PIN admin via dialog konfirmasi.
 import 'dart:io';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
@@ -104,6 +105,30 @@ class _State extends ConsumerState<TeacherDetailPage> {
                   const SizedBox(height: 12),
                   const Text('Foto identitas hanya untuk admin dan dibuka setelah PIN. Tidak tampil ke siswa.',
                       style: TextStyle(fontSize: 12, color: JogloColors.muted)),
+                  const SizedBox(height: 12),
+                  const Text('Riwayat verifikasi', style: TextStyle(fontWeight: FontWeight.w800)),
+                  FutureBuilder(
+                    future: v == null
+                        ? Future.value(<VerifAudit>[])
+                        : (db.select(db.verifAudits)..where((t) => t.verifId.equals(v.id))..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])).get(),
+                    builder: (cc, hsnap) {
+                      final h = hsnap.data ?? [];
+                      if (h.isEmpty) return const Card(child: ListTile(title: Text('Belum ada riwayat.')));
+                      return Card(
+                        child: Column(
+                          children: [
+                            for (final a in h.take(5))
+                              ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.history_outlined, size: 20),
+                                title: Text('${a.fromStatus ?? 'DRAFT'} ke ${a.toStatus}'),
+                                subtitle: Text('${a.reason ?? '-'} . ${a.createdAt}'),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ],
               );
             },

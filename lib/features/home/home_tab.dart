@@ -6,10 +6,14 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/alarm/alarm_service.dart';
 import '../../core/alarm/resync.dart';
+import '../../core/log/app_log.dart';
 import '../../data/local/les_store.dart';
 import '../../shared/widgets/profile_bar.dart';
 import '../../shared/widgets/session_card.dart';
 import '../../shared/widgets/states.dart';
+import '../attendance/attendance_repo.dart';
+import '../attendance/attendance_page.dart';
+import '../material/learn_providers.dart';
 import '../schedule/alarm_prefs.dart';
 import '../schedule/alarm_sheet.dart';
 import '../schedule/schedule_providers.dart';
@@ -20,14 +24,34 @@ class HomeTab extends ConsumerStatefulWidget {
   ConsumerState<HomeTab> createState() => _State();
 }
 
-class _State extends ConsumerState<HomeTab> {
+class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(() async {
       final resync = AlarmResync(ref.read(appDbProvider), AlarmService());
-      await resync.run();
+      final r = await resync.run();
+      AppLog.record('resync', 'scheduled=${r.scheduled} cancelled=${r.cancelled}');
+      try {
+        final n = await ref.read(attendanceRepoProvider).autoAlpa();
+        AppLog.record('auto_alpa', '$n');
+      } catch (_) {}
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(weekSessionsProvider);
+      AlarmResync(ref.read(appDbProvider), AlarmService()).run();
+    }
   }
 
   @override
@@ -114,26 +138,34 @@ class _State extends ConsumerState<HomeTab> {
                     Row(
                       children: [
                         Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (_) => AlarmSheet(session: s),
+                          child: Semantics(
+                            button: true,
+                            label: 'Atur alarm sesi ini',
+                            child: FilledButton.icon(
+                              onPressed: () => showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) => AlarmSheet(session: s),
+                              ),
+                              icon: const Icon(Icons.alarm),
+                              label: const Text('Atur Alarm'),
                             ),
-                            icon: const Icon(Icons.alarm),
-                            label: const Text('Atur Alarm'),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                  content: Text(
-                                      'Guru diberi tahu kamu OTW. Sampai jumpa di kelas.')));
-                            },
-                            icon: const Icon(Icons.directions_walk),
-                            label: const Text('Saya OTW'),
+                          child: Semantics(
+                            button: true,
+                            label: 'Beri tahu guru saya sedang menuju lokasi',
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                    content: Text(
+                                        'Guru diberi tahu kamu OTW. Sampai jumpa di kelas.')));
+                              },
+                              icon: const Icon(Icons.directions_walk),
+                              label: const Text('Saya OTW'),
+                            ),
                           ),
                         ),
                       ],
@@ -149,18 +181,34 @@ class _State extends ConsumerState<HomeTab> {
               child: ListTile(
                 leading: const Icon(Icons.payments_outlined, color: JogloColors.primary),
                 title: const Text('Tagihan aktif: Rp150.000'),
-                subtitle: const Text('SPP Okt 2026. Jatuh tempo 10 Okt.'),
+                subtitle: const Text('SPP Okt 2026. Jatuh tempo 10 Okt. Buka Saya lalu Tagihan Les.'),
                 trailing: TextButton(
                     onPressed: () => context.go('/profile'), child: const Text('Lihat')),
               ),
             ),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.campaign_outlined, color: JogloColors.primary),
-                title: const Text('Pengumuman: Jadwal Sabtu tetap jalan.'),
-                subtitle: const Text('Bawa buku latihan bab 3.'),
-                onTap: () {},
-              ),
+            Consumer(
+              builder: (c, r, _) {
+                final anns = r.watch(announcementsProvider);
+                return anns.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (list) {
+                    if (list.isEmpty) return const SizedBox.shrink();
+                    return Column(
+                      children: [
+                        for (final a in list.take(3))
+                          Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.campaign_outlined, color: JogloColors.primary),
+                              title: Text(a.title),
+                              subtitle: Text(a.body),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),

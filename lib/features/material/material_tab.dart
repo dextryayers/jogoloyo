@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../app/theme.dart';
 import '../../core/time/wib.dart';
 import '../../shared/widgets/states.dart';
@@ -56,15 +57,20 @@ class MaterialTab extends ConsumerWidget {
                 }
                 return Column(
                   children: [
+                    const _StorageBar(),
                     for (final m in list.take(5))
                       Card(
                         child: ListTile(
                           leading: const Icon(Icons.picture_as_pdf, color: JogloColors.danger),
                           title: Text('${m.subject}: ${m.title}'),
                           subtitle: Text('${(m.sizeBytes / 1024 / 1024).toStringAsFixed(1)} MB . Revisi ${m.revision}${m.important ? ' . Penting' : ''}'),
-                          trailing: const Icon(Icons.download_done),
+                          trailing: const Icon(Icons.open_in_new),
+                          onTap: () => OpenFilex.open(m.pathOrUrl),
+                          onLongPress: () => _deleteMaterial(context, ref, m.id),
                         ),
                       ),
+                    const Text('Ketuk untuk buka. Tahan untuk hapus dengan konfirmasi.',
+                        style: TextStyle(fontSize: 12, color: JogloColors.muted)),
                   ],
                 );
               },
@@ -144,5 +150,55 @@ class MaterialTab extends ConsumerWidget {
     ref.invalidate(assignmentsProvider);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tugas dibuat.')));
+  }
+
+  Future<void> _deleteMaterial(BuildContext context, WidgetRef ref, String id) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Hapus materi'),
+        content: const Text('File dihapus dari HP ini. Tindakan tidak bisa dibatalkan.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+          ElevatedButton(onPressed: () => Navigator.pop(d, true), child: const Text('Hapus')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(learningStoreProvider).deleteMaterial(id);
+    ref.invalidate(materialsProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Materi dihapus.')));
+  }
+}
+
+class _StorageBar extends ConsumerWidget {
+  const _StorageBar();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder(
+      future: ref.watch(learningStoreProvider).storageBytes(),
+      builder: (c, snap) {
+        final b = snap.data ?? 0;
+        final mb = b / 1024 / 1024;
+        final pct = (mb / 500).clamp(0.0, 1.0);
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Penyimpanan materi: ${mb.toStringAsFixed(1)} MB dari 500 MB'),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: pct),
+                if (pct > 0.8)
+                  const Text('Hampir penuh. Hapus materi lama yang tidak penting.',
+                      style: TextStyle(color: JogloColors.warning, fontSize: 12)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

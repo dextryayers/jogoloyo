@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/alarm/alarm_service.dart';
 import '../../core/alarm/resync.dart';
+import '../../core/log/app_log.dart';
 import '../../data/local/les_store.dart';
 import '../../data/local/session_local_repo.dart';
+import '../../data/local/session_repo.dart';
 import 'schedule_providers.dart';
 
 class SessionFormPage extends ConsumerStatefulWidget {
@@ -25,6 +27,56 @@ class _State extends ConsumerState<SessionFormPage> {
   int _dur = 90;
   final _note = TextEditingController();
   bool _saving = false;
+  String? _conflict;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sessionId != null) _loadExisting();
+  }
+
+  Future<void> _loadExisting() async {
+    final s = await SessionLocalRepo(ref.read(appDbProvider)).byId(widget.sessionId!);
+    if (s == null || !mounted) return;
+    final wib = s.startUtc.toUtc().add(const Duration(hours: 7));
+    setState(() {
+      _subject.text = s.subject;
+      _teacher = s.teacherId;
+      _room = s.room;
+      _day = DateTime.utc(wib.year, wib.month, wib.day);
+      _start = TimeOfDay(hour: wib.hour, minute: wib.minute);
+      _dur = s.endUtc.difference(s.startUtc).inMinutes;
+      if (![60, 90, 120].contains(_dur)) _dur = 90;
+      _note.text = s.note.startsWith('Batal: ') ? '' : s.note;
+    });
+  }
+
+  Future<void> _checkConflict() async {
+    final startWib = DateTime(_day.year, _day.month, _day.day, _start.hour, _start.minute);
+    final startUtc = startWib.subtract(const Duration(hours: 7));
+    final endUtc = startUtc.add(Duration(minutes: _dur));
+    try {
+      final repo = SessionLocalRepo(ref.read(appDbProvider));
+      final all = await repo.listRange(startUtc.subtract(const Duration(days: 1)), endUtc.add(const Duration(days: 1)));
+      final cand = SessionInput(
+        id: widget.sessionId ?? 'new',
+        subject: _subject.text,
+        teacherId: _teacher,
+        startUtc: startUtc,
+        endUtc: endUtc,
+        room: _room,
+      );
+      SessionValidator.checkNoOverlap(
+        cand,
+        all.where((e) => e.id != (widget.sessionId ?? 'new')).map((e) => SessionInput(id: e.id, subject: e.subject, teacherId: e.teacherId, startUtc: e.startUtc, endUtc: e.endUtc, room: e.room)).toList(),
+      );
+      setState(() => _conflict = null);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aman. Tidak bentrok guru dan ruang.')));
+    } catch (e) {
+      setState(() => _conflict = '$e');
+    }
+  }
 
   @override
   void dispose() {
@@ -112,9 +164,22 @@ class _State extends ConsumerState<SessionFormPage> {
           TextField(
             controller: _note,
             decoration: const InputDecoration(
-                labelText: 'Catatan', hintText: 'Contoh: Bawa buku latihan bab 3', border: OutlineInputBorder()),
+                labelText: 'Catatan', hintText: 'Contoh: Bawa buku latihan bab 3'),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          if (_conflict != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFFDECEA), borderRadius: BorderRadius.circular(10)),
+              child: Text(_conflict!, style: const TextStyle(color: Color(0xFFC62828))),
+            ),
+          OutlinedButton.icon(
+            onPressed: _checkConflict,
+            icon: const Icon(Icons.verified_outlined),
+            label: const Text('Cek Bentrok Dulu'),
+          ),
+          const SizedBox(height: 8),
           ElevatedButton(
             onPressed: _saving
                 ? null
@@ -145,6 +210,7 @@ class _State extends ConsumerState<SessionFormPage> {
                       }
                       ref.invalidate(weekSessionsProvider);
                       await AlarmResync(ref.read(appDbProvider), AlarmService()).run();
+                      AppLog.record('session_save', _subject.text);
                       if (!context.mounted) return;
                       context.pop();
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

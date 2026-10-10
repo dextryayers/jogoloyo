@@ -22,6 +22,13 @@ class SyncBackupPage extends ConsumerStatefulWidget {
 
 class _State extends ConsumerState<SyncBackupPage> {
   String _log = 'Belum ada aktivitas sync pada sesi ini.';
+  final _pin = TextEditingController();
+
+  @override
+  void dispose() {
+    _pin.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +101,47 @@ class _State extends ConsumerState<SyncBackupPage> {
                   },
                 ),
               ],
+            ),
+          ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Pulihkan dari ZIP', style: TextStyle(fontWeight: FontWeight.w800)),
+                  const Text('Butuh PIN owner. Menimpa data HP ini. Restart setelah selesai.'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _pin,
+                    keyboardType: TextInputType.number,
+                    obscureText: true,
+                    maxLength: 6,
+                    decoration: const InputDecoration(labelText: 'PIN owner'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['zip']);
+                        if (r == null) return;
+                        final db = ref.read(appDbProvider);
+                        final owners = await (db.select(db.profiles)..where((t) => t.role.equals('OWNER'))).get();
+                        if (owners.isEmpty) throw Exception('Belum ada owner di HP ini.');
+                        final msg = await ref.read(backupProvider).restoreFromZip(
+                              zip: File(r.files.single.path!),
+                              ownerId: owners.first.id,
+                              pin: _pin.text,
+                            );
+                        setState(() => _log = msg);
+                      } catch (e) {
+                        setState(() => _log = 'Restore gagal: $e');
+                      }
+                    },
+                    icon: const Icon(Icons.restore_outlined),
+                    label: const Text('Pilih ZIP dan Pulihkan'),
+                  ),
+                ],
+              ),
             ),
           ),
           Card(

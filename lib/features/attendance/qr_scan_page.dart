@@ -30,8 +30,21 @@ class _State extends ConsumerState<QrScanPage> {
       appBar: AppBar(title: const Text('Pindai untuk Hadir')),
       body: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('Arahkan bingkai ke QR guru di kelas. Pastikan cahaya cukup.'),
+          ),
           Expanded(
-            child: MobileScanner(
+            child: Stack(
+              children: [
+                MobileScanner(
+                  errorBuilder: (c, e, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                          'Kamera tidak bisa dibuka: ${e.errorCode}. Aktifkan izin kamera lalu coba lagi. Atau pakai PIN di bawah.'),
+                    ),
+                  ),
               onDetect: (cap) async {
                 if (_done) return;
                 final raw = cap.barcodes.firstOrNull?.rawValue;
@@ -62,6 +75,19 @@ class _State extends ConsumerState<QrScanPage> {
                   _fail('$e');
                 }
               },
+                ),
+                Center(
+                  child: Container(
+                    width: 220,
+                    height: 220,
+                    margin: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 3),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(

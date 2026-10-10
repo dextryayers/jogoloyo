@@ -54,6 +54,13 @@ class BillingStore {
 
   String receiptNo(String period, String id) => 'JGL-$period-${id.substring(0, 4).toUpperCase()}';
 
+  Future<String> receiptNoSeq(String billId) async {
+    final b = await (db.select(db.bills)..where((t) => t.id.equals(billId))).getSingle();
+    final all = await (db.select(db.bills)..where((t) => t.period.equals(b.period))..orderBy([(t) => OrderingTerm(expression: t.createdAt)])).get();
+    final idx = all.indexWhere((e) => e.id == billId) + 1;
+    return 'JGL-${b.period}-${idx.toString().padLeft(4, '0')}';
+  }
+
   Future<void> seedIfEmpty() async {
     final n = await (db.selectOnly(db.bills)..addColumns([db.bills.id.count()])).getSingle();
     if ((n.read(db.bills.id.count()) ?? 0) > 0) return;

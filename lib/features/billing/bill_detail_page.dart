@@ -95,12 +95,13 @@ class BillDetailPage extends ConsumerWidget {
                 onPressed: b.status != 'verified'
                     ? null
                     : () async {
+                        final no = await ref.read(billingStoreProvider).receiptNoSeq(b.id);
                         final f = await buildReceiptPdf(
                           bill: b,
                           studentName: 'Sinta',
-                          receiptNo: ref.read(billingStoreProvider).receiptNo(b.period, b.id),
+                          receiptNo: no,
                         );
-                        await Share.shareXFiles([XFile(f.path)], text: 'Kwitansi Les Jogoloyo');
+                        await Share.shareXFiles([XFile(f.path)], text: 'Kwitansi Les Jogoloyo $no');
                       },
                 icon: const Icon(Icons.receipt_outlined),
                 label: const Text('Buat dan Bagikan Kwitansi PDF'),

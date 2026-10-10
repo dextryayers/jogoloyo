@@ -1,5 +1,6 @@
 // Halaman kuis F6.3: acak soal dan opsi per percobaan, nilai otomatis, pembahasan statis.
 // 1 resmi plus 1 latihan. Percobaan kedua butuh kode guru 123456 pada V.01.0 demo.
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,8 @@ class _State extends ConsumerState<QuizPage> {
   List<int?> _ans = [];
   bool _loading = true;
   int? _score;
+  int _leftSec = 15 * 60;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -26,15 +29,59 @@ class _State extends ConsumerState<QuizPage> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer(int minutes) {
+    _timer?.cancel();
+    setState(() => _leftSec = minutes * 60);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      if (_score != null) {
+        t.cancel();
+        return;
+      }
+      setState(() => _leftSec--);
+      if (_leftSec <= 0) {
+        t.cancel();
+        _submit(auto: true);
+      }
+    });
+  }
+
+  Future<void> _submit({bool auto = false}) async {
+    if (_ans.contains(null)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Jawab semua soal dulu sebelum kumpulkan.')));
+      return;
+    }
+    final s = await ref.read(learningStoreProvider).submitQuiz(
+          quizId: widget.quizId,
+          studentId: 'siswa-sinta',
+          answers: _ans.cast<int>(),
+        );
+    if (!mounted) return;
+    setState(() => _score = s);
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auto ? 'Waktu habis. Jawaban otomatis dikumpulkan. Nilai: $s' : 'Nilai: $s')));
+  }
+
   Future<void> _load() async {
     final db = ref.read(appDbProvider);
+    final quiz = await (db.select(db.quizzes)..where((t) => t.id.equals(widget.quizId))).getSingleOrNull();
     final qs = await (db.select(db.questions)..where((t) => t.quizId.equals(widget.quizId))).get();
     qs.shuffle();
+    if (!mounted) return;
     setState(() {
       _qs = qs;
       _ans = List.filled(qs.length, null);
       _loading = false;
     });
+    _startTimer(quiz?.durationMin ?? 15);
   }
 
   @override
@@ -45,6 +92,13 @@ class _State extends ConsumerState<QuizPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: Text('Sisa waktu: ${_leftSec ~/ 60}:${(_leftSec % 60).toString().padLeft(2, '0')}'),
+              subtitle: const Text('Otomatis kumpul saat habis. Jangan tutup halaman.'),
+            ),
+          ),
           if (_score != null)
             Card(
               child: ListTile(
@@ -84,16 +138,7 @@ class _State extends ConsumerState<QuizPage> {
               ),
             ),
           ElevatedButton(
-            onPressed: _ans.contains(null) || _score != null
-                ? null
-                : () async {
-                    final s = await ref.read(learningStoreProvider).submitQuiz(
-                          quizId: widget.quizId,
-                          studentId: 'siswa-sinta',
-                          answers: _ans.cast<int>(),
-                        );
-                    setState(() => _score = s);
-                  },
+            onPressed: _ans.contains(null) || _score != null ? null : () => _submit(),
             child: const Text('Kumpulkan dan Nilai Otomatis'),
           ),
         ],

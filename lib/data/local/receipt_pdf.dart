@@ -18,7 +18,7 @@ Future<File> buildReceiptPdf({
       build: (c) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('LES JOGOLOYO', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+          pw.Text('LES JOGOLOYO', style: const pw.TextStyle(fontSize: 20)),
           pw.Text('Kwitansi Pembayaran Les'),
           pw.Divider(),
           pw.Text('Nomor: $receiptNo'),

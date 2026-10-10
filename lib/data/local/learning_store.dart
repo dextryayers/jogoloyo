@@ -54,6 +54,17 @@ class LearningStore {
     return n;
   }
 
+  Future<void> deleteMaterial(String id) async {
+    final m = await (db.select(db.materials)..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (m != null) {
+      try {
+        final f = File(m.pathOrUrl);
+        if (await f.exists()) await f.delete();
+      } catch (_) {}
+      await (db.delete(db.materials)..where((t) => t.id.equals(id))).go();
+    }
+  }
+
   Future<void> createAssignment({
     required String subject,
     required String title,

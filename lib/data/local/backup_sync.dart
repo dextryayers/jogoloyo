@@ -51,6 +51,25 @@ class BackupService {
     if (owner == null) throw Exception('Owner tidak ditemukan.');
     if (!PinHash.verify(pin, owner.salt, owner.pinHash)) throw Exception('PIN owner salah.');
   }
+
+  Future<String> restoreFromZip({required File zip, required String ownerId, required String pin}) async {
+    await assertOwnerPin(ownerId, pin);
+    final bytes = await zip.readAsBytes();
+    final arch = ZipDecoder().decodeBytes(bytes);
+    final hasDb = arch.files.any((f) => f.name == 'jogoloyo.db');
+    if (!hasDb) throw Exception('ZIP tidak berisi jogoloyo.db. File salah.');
+    final docs = await getApplicationDocumentsDirectory();
+    await db.close();
+    for (final f in arch.files) {
+      if (!f.isFile) continue;
+      final out = File(p.join(docs.path, f.name));
+      await out.parent.create(recursive: true);
+      await out.writeAsBytes(f.content as List<int>, flush: true);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_restore', DateTime.now().toUtc().toIso8601String());
+    return 'Restore selesai. Restart app agar alarm dan DB dimuat ulang.';
+  }
 }
 
 class DistribusiService {

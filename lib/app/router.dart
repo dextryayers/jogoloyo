@@ -24,10 +24,12 @@ import '../features/profile/wipe_page.dart';
 import '../features/profile/profile_tab.dart';
 import '../features/auth/setup_owner_page.dart';
 import '../features/auth/pin_page.dart';
+import '../features/auth/startup_gate.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/home',
+  initialLocation: '/',
   routes: [
+    GoRoute(path: '/', builder: (c, s) => const StartupGate()),
     GoRoute(path: '/setup', builder: (c, s) => const SetupOwnerPage()),
     GoRoute(path: '/pin', builder: (c, s) => const PinPage()),
     GoRoute(path: '/schedule/new', builder: (c, s) => const SessionFormPage()),
