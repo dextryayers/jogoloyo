@@ -16,6 +16,7 @@ class Profiles extends Table {
   TextColumn get pinHash => text()();
   TextColumn get salt => text()();
   TextColumn get gender => text().nullable()();
+  TextColumn get subject => text().nullable()();
   TextColumn get photoPath => text().nullable()();
   TextColumn get status => text().withDefault(const Constant('ACTIVE'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -62,14 +63,46 @@ class Attendances extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Profiles, TeacherVerifs, Sessions, Attendances])
+class VerifAudits extends Table {
+  TextColumn get id => text()();
+  TextColumn get verifId => text().references(TeacherVerifs, #id)();
+  TextColumn get actorId => text()();
+  TextColumn get fromStatus => text().nullable()();
+  TextColumn get toStatus => text()();
+  TextColumn get reason => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Checkins extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get sessionId => text().references(Sessions, #id)();
+  TextColumn get teacherId => text().references(Profiles, #id)();
+  BoolColumn get compliance => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [Profiles, TeacherVerifs, Sessions, Attendances, VerifAudits, Checkins])
 class AppDb extends _$AppDb {
   AppDb() : super(_open());
 
   AppDb.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from == 1) {
+            await m.addColumn(profiles, profiles.subject);
+            await m.createTable(verifAudits);
+            await m.createTable(checkins);
+          }
+        },
+      );
 
   // Query audit cepat: 0 baris sebelum rilis.
   Future<List<Session>> activeSessionsWithUnverifiedFemaleTeacher() {

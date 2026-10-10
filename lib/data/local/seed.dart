@@ -15,7 +15,7 @@ Future<void> seedIfEmpty(AppDb db, FlutterSecureStorage secure) async {
     return '$salt::${PinHash.hash(v, salt)}';
   }
 
-  Future<void> addProfile(String id, String role, String name, String? gender) async {
+  Future<void> addProfile(String id, String role, String name, String? gender, [String? subject]) async {
     final parts = pin('123456').split('::');
     await db.into(db.profiles).insert(
           ProfilesCompanion.insert(
@@ -25,12 +25,13 @@ Future<void> seedIfEmpty(AppDb db, FlutterSecureStorage secure) async {
             pinHash: parts[1],
             salt: parts[0],
             gender: Value(gender),
+            subject: Value(subject),
           ),
         );
   }
 
-  await addProfile('guru-rina', 'GURU', 'Ustazah Rina', 'P');
-  await addProfile('guru-dewi', 'GURU', 'Ustazah Dewi', 'P');
+  await addProfile('guru-rina', 'GURU', 'Ustazah Rina', 'P', 'Matematika');
+  await addProfile('guru-dewi', 'GURU', 'Ustazah Dewi', 'P', 'Biologi');
   await addProfile('siswa-sinta', 'SISWA', 'Sinta', null);
   await addProfile('admin-budi', 'ADMIN', 'Pak Budi', null);
 

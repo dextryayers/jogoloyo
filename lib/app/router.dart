@@ -7,6 +7,13 @@ import '../features/schedule/schedule_tab.dart';
 import '../features/schedule/session_detail_page.dart';
 import '../features/schedule/session_form_page.dart';
 import '../features/teacher/teacher_tab.dart';
+import '../features/teacher/teacher_detail_page.dart';
+import '../features/teacher/teacher_submit_page.dart';
+import '../features/teacher/review_queue_page.dart';
+import '../features/teacher/checkin_page.dart';
+import '../features/attendance/attendance_page.dart';
+import '../features/attendance/qr_display_page.dart';
+import '../features/attendance/qr_scan_page.dart';
 import '../features/material/material_tab.dart';
 import '../features/profile/profile_tab.dart';
 import '../features/auth/setup_owner_page.dart';
@@ -17,20 +24,27 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(path: '/setup', builder: (c, s) => const SetupOwnerPage()),
     GoRoute(path: '/pin', builder: (c, s) => const PinPage()),
-    GoRoute(
-      path: '/schedule/new',
-      builder: (c, s) => const SessionFormPage(),
-    ),
+    GoRoute(path: '/schedule/new', builder: (c, s) => const SessionFormPage()),
     GoRoute(
       path: '/schedule/:id',
       builder: (c, s) => SessionDetailPage(sessionId: s.pathParameters['id']!),
       routes: [
-        GoRoute(
-          path: 'edit',
-          builder: (c, s) => SessionFormPage(sessionId: s.pathParameters['id']),
-        ),
+        GoRoute(path: 'edit', builder: (c, s) => SessionFormPage(sessionId: s.pathParameters['id'])),
       ],
     ),
+    GoRoute(path: '/teachers/submit', builder: (c, s) => const TeacherSubmitPage()),
+    GoRoute(path: '/teachers/review', builder: (c, s) => const ReviewQueuePage()),
+    GoRoute(path: '/teachers/:id', builder: (c, s) => TeacherDetailPage(teacherId: s.pathParameters['id']!)),
+    GoRoute(
+      path: '/checkin/:sid/:tid',
+      builder: (c, s) => CheckinPage(
+        sessionId: s.pathParameters['sid']!,
+        teacherId: s.pathParameters['tid']!,
+      ),
+    ),
+    GoRoute(path: '/attendance/:id', builder: (c, s) => AttendancePage(sessionId: s.pathParameters['id']!)),
+    GoRoute(path: '/attendance/:id/qr', builder: (c, s) => QrDisplayPage(sessionId: s.pathParameters['id']!)),
+    GoRoute(path: '/attendance/:id/scan', builder: (c, s) => QrScanPage(sessionId: s.pathParameters['id']!)),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return ScaffoldWithTabs(shell: shell);
