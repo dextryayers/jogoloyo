@@ -38,6 +38,8 @@ class AlarmResync {
         offsets: pref.offsets,
         title: s.subject,
         room: s.room,
+        sound: pref.sound,
+        loud: pref.loud,
       );
       if (ok) sch++;
     }

@@ -6,6 +6,7 @@
 - Alur baru: splash 2 detik, onboarding 3 halaman, setup guru (nama, mapel, foto kamera autosave), lalu dashboard 5 tab bawah.
 - Foto profil autosave lokal: langsung tersimpan saat diambil, tampil di bar profil dan menu Saya, bisa ganti kapan saja.
 - Dashboard: header logo plus versi, sapaan nama profil aktif, Les Berikutnya nyata, alarm, OTW, tagihan, pengumuman nyata.
+- Alarm Suara 1 sampai 6: pilih di sheet, ketuk untuk dengar langsung, H-10 otomatis bunyi plus getar kuat, Mode Keras 200 persen paksa volume maksimal lalu kembalikan.
 
 ## 1.0.0+1 - V.01.0 local deep
 

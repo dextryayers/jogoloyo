@@ -17,4 +17,13 @@ void main() {
     expect(a == b, false);
     expect(a == c, false);
   });
+
+  test('enam suara valid plus default suara1 dan keras aktif', () {
+    expect(AlarmSound.options.length, 6);
+    expect(AlarmSound.options.map((e) => e.label).toList(),
+        ['Suara 1', 'Suara 2', 'Suara 3', 'Suara 4', 'Suara 5', 'Suara 6']);
+    expect(AlarmSound.isValid('suara3'), true);
+    expect(AlarmSound.isValid('suara9'), false);
+    expect(AlarmPrefs.defaultSound, 'suara1');
+  });
 }
