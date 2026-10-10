@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/theme.dart';
 import '../../core/alarm/alarm_service.dart';
+import '../../shared/widgets/level_picker.dart';
 import '../../features/schedule/alarm_prefs.dart';
 
 class SettingTab extends ConsumerStatefulWidget {
@@ -16,7 +17,8 @@ class SettingTab extends ConsumerStatefulWidget {
 
 class _State extends ConsumerState<SettingTab> {
   String _sound = 'suara1';
-  bool _loud = true;
+  int _level = 200;
+  bool _vibrate = true;
   bool _exact = true;
   bool _notif = true;
 
@@ -32,7 +34,9 @@ class _State extends ConsumerState<SettingTab> {
     if (!mounted) return;
     setState(() {
       _sound = p.getString('default_sound') ?? 'suara1';
-      _loud = p.getBool('default_loud') ?? true;
+      _level = p.getInt('default_level') ?? 200;
+      if (!AlarmLevel.isValid(_level)) _level = 200;
+      _vibrate = p.getBool('default_vibrate') ?? true;
       _exact = perm['exactAlarm'] ?? true;
       _notif = perm['notifications'] ?? true;
     });
@@ -101,27 +105,34 @@ class _State extends ConsumerState<SettingTab> {
                             final p = await SharedPreferences.getInstance();
                             await p.setString('default_sound', s.id);
                             setState(() => _sound = s.id);
-                            AlarmService().test('urgent', sound: s.id, loud: _loud);
+                            AlarmService().test('urgent',
+                                sound: s.id, level: _level, vibrate: _vibrate);
                           },
                         ),
                     ],
                   ),
-                  SwitchListTile(
-                    value: _loud,
-                    onChanged: (v) async {
+                  LevelPicker(
+                    level: _level,
+                    vibrate: _vibrate,
+                    onLevel: (v) async {
                       final p = await SharedPreferences.getInstance();
-                      await p.setBool('default_loud', v);
-                      setState(() => _loud = v);
+                      await p.setInt('default_level', v);
+                      setState(() => _level = v);
+                      AlarmService().test('urgent',
+                          sound: _sound, level: v, vibrate: _vibrate);
                     },
-                    title: const Text('Mode Keras 200 persen'),
-                    subtitle: const Text('Volume dipaksa maksimal plus getar kuat.'),
+                    onVibrate: (v) async {
+                      final p = await SharedPreferences.getInstance();
+                      await p.setBool('default_vibrate', v);
+                      setState(() => _vibrate = v);
+                    },
                   ),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => AlarmService()
-                              .test('urgent', sound: _sound, loud: _loud),
+                          onPressed: () => AlarmService().test('urgent',
+                              sound: _sound, level: _level, vibrate: _vibrate),
                           icon: const Icon(Icons.play_arrow),
                           label: const Text('Play'),
                         ),

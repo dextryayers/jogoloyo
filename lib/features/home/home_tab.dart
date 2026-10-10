@@ -147,7 +147,8 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
                     final p = await SharedPreferences.getInstance();
                     await AlarmService().test('urgent',
                         sound: p.getString('default_sound') ?? 'suara1',
-                        loud: p.getBool('default_loud') ?? true);
+                        level: p.getInt('default_level') ?? 200,
+                        vibrate: p.getBool('default_vibrate') ?? true);
                   },
                 ),
                 _Shortcut(

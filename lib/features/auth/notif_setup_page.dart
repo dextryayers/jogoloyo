@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../core/alarm/alarm_service.dart';
 import '../../core/log/app_log.dart';
 import '../../data/local/simple_store.dart';
+import '../../shared/widgets/level_picker.dart';
 import '../../features/schedule/alarm_prefs.dart';
 
 class NotifSetupPage extends ConsumerStatefulWidget {
@@ -18,7 +19,8 @@ class NotifSetupPage extends ConsumerStatefulWidget {
 
 class _State extends ConsumerState<NotifSetupPage> {
   String _sound = 'suara1';
-  bool _loud = true;
+  int _level = 200;
+  bool _vibrate = true;
   Map<String, String> _times = defaultSlotTimes();
   final Map<String, bool> _on = {'Pagi': true, 'Siang': false, 'Sore': true, 'Malam': false};
   bool _saving = false;
@@ -39,7 +41,9 @@ class _State extends ConsumerState<NotifSetupPage> {
     }
     setState(() {
       _sound = p.getString('default_sound') ?? 'suara1';
-      _loud = p.getBool('default_loud') ?? true;
+      _level = p.getInt('default_level') ?? 200;
+      if (!AlarmLevel.isValid(_level)) _level = 200;
+      _vibrate = p.getBool('default_vibrate') ?? true;
       _times = t;
     });
   }
@@ -89,22 +93,27 @@ class _State extends ConsumerState<NotifSetupPage> {
                   selected: _sound == s.id,
                   onSelected: (_) {
                     setState(() => _sound = s.id);
-                    AlarmService().test('urgent', sound: s.id, loud: _loud);
+                    AlarmService()
+                        .test('urgent', sound: s.id, level: _level, vibrate: _vibrate);
                   },
                 ),
             ],
           ),
-          SwitchListTile(
-            value: _loud,
-            onChanged: (v) => setState(() => _loud = v),
-            title: const Text('Mode Keras 200 persen'),
-            subtitle: const Text('Volume dipaksa maksimal plus getar kuat.'),
+          LevelPicker(
+            level: _level,
+            vibrate: _vibrate,
+            onLevel: (v) {
+              setState(() => _level = v);
+              AlarmService().test('urgent', sound: _sound, level: v, vibrate: _vibrate);
+            },
+            onVibrate: (v) => setState(() => _vibrate = v),
           ),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => AlarmService().test('urgent', sound: _sound, loud: _loud),
+                  onPressed: () => AlarmService()
+                      .test('urgent', sound: _sound, level: _level, vibrate: _vibrate),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Play'),
                 ),
@@ -138,7 +147,8 @@ class _State extends ConsumerState<NotifSetupPage> {
                       try {
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setString('default_sound', _sound);
-                        await prefs.setBool('default_loud', _loud);
+                        await prefs.setInt('default_level', _level);
+                        await prefs.setBool('default_vibrate', _vibrate);
                         final store = ref.read(simpleStoreProvider);
                         for (final s in appSlots) {
                           if (!(_on[s] ?? false)) continue;
@@ -147,7 +157,8 @@ class _State extends ConsumerState<NotifSetupPage> {
                             title: 'Waktunya $s',
                             whenUtc: store.todayWibToUtc(_times[s] ?? '06:00'),
                             sound: _sound,
-                            loud: _loud,
+                            level: _level,
+                            vibrate: _vibrate,
                             daily: true,
                           ));
                         }

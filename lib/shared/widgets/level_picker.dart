@@ -1,7 +1,7 @@
 // Pilih kekerasan suara plus getar. Dipakai di form pengingat,
 // setup notifikasi, dan setting. Satu tampilan agar konsisten.
 import 'package:flutter/material.dart';
-import '../schedule/alarm_prefs.dart';
+import '../../features/schedule/alarm_prefs.dart';
 import '../../app/theme.dart';
 
 class LevelPicker extends StatelessWidget {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../data/local/simple_store.dart';
+import 'note_export_sheet.dart';
 
 class NoteEditorPage extends ConsumerStatefulWidget {
   final String? noteId;
@@ -64,6 +65,19 @@ class _State extends ConsumerState<NoteEditorPage> {
       appBar: AppBar(
         title: Text(widget.noteId == null ? 'Catatan Baru' : 'Ubah Catatan'),
         actions: [
+          IconButton(
+            tooltip: 'Ekspor gambar atau PDF',
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => NoteExportSheet(
+                title: _title.text,
+                body: _body.text,
+                date: _updated == null ? 'Baru' : _date(_updated!),
+              ),
+            ),
+          ),
           if (widget.noteId != null)
             IconButton(
               tooltip: 'Hapus',

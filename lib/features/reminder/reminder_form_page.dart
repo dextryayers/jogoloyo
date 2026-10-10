@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../core/alarm/alarm_service.dart';
 import '../../core/log/app_log.dart';
 import '../../data/local/simple_store.dart';
+import '../../shared/widgets/level_picker.dart';
 import '../../features/schedule/alarm_prefs.dart';
 
 class ReminderFormPage extends ConsumerStatefulWidget {
@@ -138,16 +139,19 @@ class _State extends ConsumerState<ReminderFormPage> {
                   selected: _sound == s.id,
                   onSelected: (_) {
                     setState(() => _sound = s.id);
-                    AlarmService().test('urgent', sound: s.id, loud: _loud);
+                    AlarmService().test('urgent', sound: s.id, level: _level, vibrate: _vibrate);
                   },
                 ),
             ],
           ),
-          SwitchListTile(
-            value: _loud,
-            onChanged: (v) => setState(() => _loud = v),
-            title: const Text('Mode Keras 200 persen'),
-            subtitle: const Text('Volume dipaksa maksimal plus getar kuat.'),
+          LevelPicker(
+            level: _level,
+            vibrate: _vibrate,
+            onLevel: (v) {
+              setState(() => _level = v);
+              AlarmService().test('urgent', sound: _sound, level: v, vibrate: _vibrate);
+            },
+            onVibrate: (v) => setState(() => _vibrate = v),
           ),
           SwitchListTile(
             value: _enabled,
@@ -158,7 +162,8 @@ class _State extends ConsumerState<ReminderFormPage> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => AlarmService().test('urgent', sound: _sound, loud: _loud),
+                  onPressed: () => AlarmService()
+                      .test('urgent', sound: _sound, level: _level, vibrate: _vibrate),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Play'),
                 ),
@@ -208,7 +213,8 @@ class _State extends ConsumerState<ReminderFormPage> {
                       title: _title.text.trim().isEmpty ? 'Pengingat' : _title.text.trim(),
                       whenUtc: utc,
                       sound: _sound,
-                      loud: _loud,
+                      level: _level,
+                      vibrate: _vibrate,
                       enabled: _enabled,
                       daily: _daily,
                     ));

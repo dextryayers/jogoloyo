@@ -26,4 +26,11 @@ void main() {
     expect(AlarmSound.isValid('suara9'), false);
     expect(AlarmPrefs.defaultSound, 'suara1');
   });
+
+  test('level valid 100 sampai 200 dan gain naik', () {
+    expect(AlarmLevel.options, [100, 125, 150, 175, 200]);
+    expect(AlarmLevel.gainDb(100), 0);
+    expect(AlarmLevel.gainDb(200) > AlarmLevel.gainDb(150), true);
+    expect(AlarmLevel.gainDb(150) > AlarmLevel.gainDb(125), true);
+  });
 }

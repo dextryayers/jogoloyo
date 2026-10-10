@@ -71,7 +71,14 @@ class ReminderTab extends ConsumerWidget {
                             value: r.enabled,
                             onChanged: (v) async {
                               await ref.read(simpleStoreProvider).upsertReminder(Reminder(
-                                  id: r.id, title: r.title, whenUtc: r.whenUtc, sound: r.sound, loud: r.loud, enabled: v, daily: r.daily));
+                                  id: r.id,
+                                  title: r.title,
+                                  whenUtc: r.whenUtc,
+                                  sound: r.sound,
+                                  level: r.level,
+                                  vibrate: r.vibrate,
+                                  enabled: v,
+                                  daily: r.daily));
                               await ref.read(simpleStoreProvider).rescheduleAll();
                               ref.invalidate(remindersProvider);
                             },
