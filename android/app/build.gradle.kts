@@ -6,12 +6,15 @@ plugins {
 
 android {
     namespace = "id.jogoloyo.jogoloyo_les"
-    compileSdk = flutter.compileSdkVersion
+    // Naikkan ke 36: flutter_plugin_android_lifecycle (via file_picker) wajib compile 36+.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Wajib untuk flutter_local_notifications (Java 8+ API di minSdk rendah).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -46,4 +49,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

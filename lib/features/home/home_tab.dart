@@ -11,7 +11,6 @@ import '../../data/local/les_store.dart';
 import '../../shared/widgets/profile_bar.dart';
 import '../../shared/widgets/session_card.dart';
 import '../../shared/widgets/states.dart';
-import '../attendance/attendance_repo.dart';
 import '../attendance/attendance_page.dart';
 import '../material/learn_providers.dart';
 import '../schedule/alarm_prefs.dart';

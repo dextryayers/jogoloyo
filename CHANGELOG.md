@@ -1,14 +1,19 @@
 # Changelog Les Jogoloyo
 
-## 1.0.0+1 - V.01.0 local
+## 1.0.0+1 - V.01.0 local deep
 
-- 5 tab bawah: Beranda, Jadwal, Guru, Materi, Saya. Router StatefulShellRoute plus deep link detail.
-- Auth PIN lokal multi profil: owner, admin, guru, siswa, ortu. Kunci les 32 byte di secure storage.
-- Jadwal lokal Drift: cegah bentrok guru dan ruang, revisi naik, batal beralasan, izin sakit.
-- Alarm exact Kotlin: H-60 H-30 H-10 H-0, BootReceiver, label Presisi Tidak presisi Mati, Tes Info dan Urgent, panduan OEM.
-- Guru wajib berjilbab: foto kamera wajib, kompresi 2 MB, antrian review manusia, audit, suspend, guard jadwal ACTIVE only, paket HMAC beda HP.
-- Absensi QR rotating 60 detik plus PIN 10 menit, batas 5 salah, auto alpa H+30, rekap HISA, ekspor CSV BOM.
-- Materi 25 MB offline plus kelola 500 MB. Tugas 10 MB plus label terlambat. Kuis PG acak plus nilai otomatis.
-- Billing manual: tagihan massal anti dobel, bukti foto, review beralasan, kwitansi PDF LUNAS.
-- Sync distribusi JSON revision menang plus backup ZIP plus hapus total PIN owner.
-- 15+ uji unit dan widget hijau. Lint teks bersih. AAB target di bawah 30 MB.
+- Bootstrap: binding, zona Asia/Jakarta, ErrorWidget Indonesia, log lokal 100 baris.
+- Tema: input, dialog, snackbar, divider, text theme. Label app Les Jogoloyo.
+- Guard startup ke setup jika tanpa owner. PIN lockout waktu 5 menit plus audit gagal.
+- Tautan ortu sekali pakai dengan batas 2 ortu per anak dan 4 anak per ortu.
+- Jadwal: cari mapel guru ruang, kartu izin presisi jika exact mati, resync saat resume.
+- Form: prefill saat ubah, tombol Cek Bentrok Dulu dengan banner merah spesifik.
+- Beranda: pengumuman nyata 3 terbaru, resync plus auto alpa otomatis, observer resume, Semantics Atur Alarm dan OTW.
+- Guru: riwayat audit 5 terbaru di detail. Guard ACTIVE only tetap dijaga di repo.
+- Absensi: rekap HISA bulan berjalan, auto alpa otomatis saat buka, overlay bingkai QR plus pesan izin kamera.
+- Materi: buka file via open_filex, hapus tahan dengan konfirmasi, bar 500 MB plus peringatan 80 persen.
+- Tugas: daftar kumpul 10 terbaru plus denda 10 persen per hari maks 30 persen.
+- Kuis: timer mundur plus kumpul otomatis saat habis.
+- Billing: kwitansi nomor urut JGL-periode-0001 berdasar urutan buat.
+- Sync: restore ZIP dengan PIN owner plus restart, hapus total tetap ada.
+- Uji: 15 lolos termasuk billing dobel, kuis 80, QR basi, paket HMAC.
