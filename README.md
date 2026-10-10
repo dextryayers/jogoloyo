@@ -27,7 +27,7 @@
 4. [Arsitektur Lokal](#4-flowchart-arsitektur-lokal)
 5. [Siklus Hidup Pengingat](#5-diagram-siklus-hidup-pengingat)
 6. [Urutan Bunyi Alarm](#6-diagram-urutan-bunyi-alarm)
-7. [Model Data](#7-diagram-model-data)
+7. [Peta Penyimpanan Lokal](#7-diagram-peta-penyimpanan-lokal)
 8. [Ekspor Catatan](#8-flowchart-ekspor-catatan)
 9. [Detail Fitur](#9-detail-fitur)
 10. [Copy Notifikasi](#10-copy-notifikasi)
@@ -98,24 +98,23 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Simpan pengingat]) --> B{Jadwal lewat?}
-    B -- Ya, sekali --> C[Tolak: pilih jam berikutnya]
-    B -- Tidak --> D[Simpan lokal]
-    D --> E[Jadwalkan alarm exact\noffset 0]
+    A([Simpan pengingat]) --> B{Jadwal lewat?\nkhusus sekali}
+    B -- Ya --> C[Tolak: pilih jam berikutnya]
+    B -- Tidak --> D[Simpan JSON lokal]
+    D --> E[Jadwalkan alarm exact\noffset 0 = tepat waktu]
     E --> F{Waktu tiba}
-    F --> G{Urgent?}
-    G -- H-10 / H-0 --> H{Level di atas 100?}
-    H -- Ya --> I[Paksa volume maksimal]
-    H -- Tidak --> J[Pakai volume HP]
-    I --> K[Putar Suara 1-6\nvia MediaPlayer]
-    J --> K
-    K --> L{Getar aktif?}
-    L -- Ya --> M[Getar pola kuat]
-    L -- Tidak --> N[Tanpa getar]
-    M --> O[Selesai: kembalikan volume]
-    N --> O
-    G -- H-60 / H-30 --> P[Notifikasi biasa]
-    Q([Buka app / resume]) --> R[Jadwalkan ulang semua:\nharian lewat geser +1 hari]
+    F --> G{Level di atas 100?}
+    G -- Ya --> H[Paksa volume maksimal]
+    G -- Tidak --> I[Pakai volume HP]
+    H --> J[Putar Suara 1-6\nvia MediaPlayer]
+    I --> J
+    J --> K{Getar aktif?}
+    K -- Ya --> L[Getar pola kuat]
+    K -- Tidak --> M[Tanpa getar]
+    L --> N[Notifikasi silent info sesi]
+    M --> N
+    N --> O[Selesai: kembalikan volume]
+    P([Buka app / resume /\nreboot]) --> Q[Jadwalkan ulang semua:\nharian lewat geser +1 hari\nsekali lewat dibatalkan]
 ```
 
 ## 4. Flowchart Arsitektur Lokal
@@ -131,11 +130,13 @@ flowchart LR
         C[jogoloyo alarm v1]
         SCH[AlarmScheduler]
         REC[AlarmReceiver]
+        BRT[BootReceiver\njadwal ulang]
         PL[AlarmSoundPlayer\nMediaPlayer + getar]
         NH[NotificationHelper]
     end
     subgraph DATA[Penyimpanan HP]
         P[(Prefs: profil\npengingat, catatan)]
+        D[(Drift jogoloyo.db:\ntabel profiles)]
         F[(File: foto\naset suara)]
     end
     R --> S
@@ -143,9 +144,11 @@ flowchart LR
     A --> C
     C --> SCH
     SCH --> REC
+    BRT --> SCH
     REC --> PL
     REC --> NH
     S <--> P
+    S --> D
 ```
 
 ## 5. Diagram Siklus Hidup Pengingat
@@ -183,40 +186,37 @@ sequenceDiagram
     K->>U: Notifikasi silent info sesi
 ```
 
-## 7. Diagram Model Data
+## 7. Diagram Peta Penyimpanan Lokal
 
 ```mermaid
-erDiagram
-    PROFIL ||--o{ PENGINGAT : punya
-    PROFIL ||--o{ CATATAN : punya
-    PROFIL ||--o{ LAPORAN : kirim
-    PENGINGAT {
-        string id
-        string judul
-        string iso_utc
-        string suara
-        int level
-        bool getar
-        bool aktif
-        bool harian
-    }
-    CATATAN {
-        string id
-        string judul
-        string isi
-        string updated_utc
-    }
-    PROFIL {
-        string nama
-        string foto_path
-        string slot
-        string gender
-    }
-    LAPORAN {
-        string id
-        string judul
-        string waktu
-    }
+flowchart TD
+    subgraph PREF[SharedPreferences]
+        A[user_name user_photo\nuser_slot user_gender]
+        B[onboarding_done\nprofil_done notif_done]
+        C[default_sound\ndefault_level default_vibrate]
+        D[slot_Pagi Siang Sore Malam\nformat HH:mm]
+        E[reminders_v1\nlist JSON pengingat]
+        F[notes_v1\nlist JSON catatan]
+        G[reports_v1\nlist JSON laporan]
+        H[alarm id me\noffset suara level getar]
+        I[active_profile_id]
+    end
+    subgraph SECURE[Secure Storage]
+        J[les_key_b64\nkunci HMAC 32 byte]
+    end
+    subgraph DB[(Drift jogoloyo.db)]
+        K[tabel profiles:\nid nama PIN hash\nfoto gender mapel]
+    end
+    subgraph FILE[File App]
+        L[teacher_photos\nfoto jpg kompres]
+        M[assets music\nsuara1-6 bawaan APK]
+    end
+    A --> E
+    C --> E
+    D --> E
+    E --> H
+    I --> K
+    A -. foto path .-> L
 ```
 
 ## 8. Flowchart Ekspor Catatan
@@ -274,16 +274,14 @@ flowchart TD
 
 ## 10. Copy Notifikasi
 
-Contoh teks yang tampil ke pengguna:
+Teks asli dari `NotificationHelper`. V.02 hanya menjadwalkan offset 0.
 
 | Momen | Teks |
 |---|---|
-| H-60 | 60 menit lagi: judul di info |
-| H-30 | 30 menit lagi: judul. Aktifkan suara HP |
-| H-10 | 10 menit lagi masuk kelas. Siapkan buku dan alat tulis |
-| H-0 | Saatnya masuk: judul |
+| Berbunyi (offset 0) | Saatnya masuk: judul |
+| Tes Keras | 10 menit lagi masuk kelas. Siapkan buku dan alat tulis |
+| Tes Info | 30 menit lagi: Tes Alarm. Aktifkan suara HP |
 | Sukses simpan | Tersimpan. Akan berbunyi plus getar tepat waktu |
-| Tes | Tes terkirim bila sunyi cek izin notifikasi |
 
 ---
 
@@ -323,6 +321,7 @@ Channel: `jogoloyo/alarm/v1`. Semua waktu ISO UTC.
 |---|---|---|
 | scheduleSessionAlarm | sessionId, startUtcIso, offsetsMinutes, title, room, sound, level, vibrate | true atau error SCHEDULER_BUSY |
 | cancelSessionAlarm | sessionId | true |
+| cancelAllAlarms | - | true |
 | testAlarm | kind info atau urgent, sound, level, vibrate | true |
 | stopAlarmSound | - | true |
 | requestNotifications | - | true atau error PERMISSION_DENIED |
