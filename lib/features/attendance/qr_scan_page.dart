@@ -38,7 +38,7 @@ class _State extends ConsumerState<QrScanPage> {
             child: Stack(
               children: [
                 MobileScanner(
-                  errorBuilder: (c, e, _) => Center(
+                  errorBuilder: (c, e) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(

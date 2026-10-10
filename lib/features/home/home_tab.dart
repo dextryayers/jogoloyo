@@ -8,10 +8,12 @@ import '../../core/alarm/alarm_service.dart';
 import '../../core/alarm/resync.dart';
 import '../../core/log/app_log.dart';
 import '../../data/local/les_store.dart';
+import '../../shared/widgets/app_logo.dart';
 import '../../shared/widgets/profile_bar.dart';
 import '../../shared/widgets/session_card.dart';
 import '../../shared/widgets/states.dart';
 import '../attendance/attendance_page.dart';
+import '../auth/active_profile.dart';
 import '../material/learn_providers.dart';
 import '../schedule/alarm_prefs.dart';
 import '../schedule/alarm_sheet.dart';
@@ -56,6 +58,7 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(weekSessionsProvider);
+    final active = ref.watch(activeProfileProvider);
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
@@ -65,14 +68,44 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            ProfileBar(
-              profile: const ActiveProfile(id: 'siswa-sinta', name: 'Sinta', role: LocalRole.siswa),
-              onSwitch: () => context.push('/pin'),
+            const Row(
+              children: [
+                AppLogo(size: 40, radius: 12),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Les Jogoloyo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    Text('V.01.0 local . 100 persen offline',
+                        style: TextStyle(fontSize: 12, color: JogloColors.muted)),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            Text(
-              _greeting(),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            active.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
+              data: (p) => ProfileBar(
+                profile: ActiveProfile(
+                  id: p?.id ?? '-',
+                  name: p?.name ?? 'Guru',
+                  role: roleFromString(p?.role ?? 'GURU'),
+                  photoPath: p?.photoPath,
+                ),
+                onSwitch: () => context.push('/pin'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            active.when(
+              loading: () => const Text('Selamat datang.',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              error: (_, _) => const Text('Selamat datang.',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              data: (p) => Text(
+                _greeting(p?.name ?? 'Guru'),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
             ),
             const SizedBox(height: 4),
             const Text('Les Berikutnya',
@@ -215,11 +248,12 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
     );
   }
 
-  String _greeting() {
+  String _greeting(String name) {
     final h = DateTime.now().hour;
-    if (h < 11) return 'Selamat pagi, Sinta.';
-    if (h < 15) return 'Selamat siang, Sinta.';
-    if (h < 19) return 'Selamat sore, Sinta.';
-    return 'Selamat malam, Sinta.';
+    final base = name.isEmpty ? 'Guru' : name;
+    if (h < 11) return 'Selamat pagi, $base.';
+    if (h < 15) return 'Selamat siang, $base.';
+    if (h < 19) return 'Selamat sore, $base.';
+    return 'Selamat malam, $base.';
   }
 }

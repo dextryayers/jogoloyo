@@ -14,9 +14,9 @@ class LearningStore {
   LearningStore(this.db);
 
   Future<String> pickAndSaveMaterial({required String subject, required String title, bool important = false}) async {
-    final r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
-    if (r == null || r.files.single.path == null) throw Exception('Pemilihan dibatalkan.');
-    final src = File(r.files.single.path!);
+    final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
+    if (files.isEmpty || files.single.path == null) throw Exception('Pemilihan dibatalkan.');
+    final src = File(files.single.path!);
     final size = await src.length();
     if (size > 25 * 1024 * 1024) throw Exception('File di atas 25 MB. Kecilkan dulu.');
     final docs = await getApplicationDocumentsDirectory();
@@ -85,9 +85,9 @@ class LearningStore {
   }
 
   Future<void> submitAssignment({required String assignmentId, required String studentId}) async {
-    final r = await FilePicker.platform.pickFiles();
-    if (r == null || r.files.single.path == null) throw Exception('Pemilihan dibatalkan.');
-    final src = File(r.files.single.path!);
+    final files = await FilePicker.pickFiles();
+    if (files.isEmpty || files.single.path == null) throw Exception('Pemilihan dibatalkan.');
+    final src = File(files.single.path!);
     if (await src.length() > 10 * 1024 * 1024) throw Exception('File di atas 10 MB.');
     final docs = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(docs.path, 'tugas'));

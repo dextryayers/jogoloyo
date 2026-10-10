@@ -1,16 +1,22 @@
-// Tab Saya: akun, tagihan, alarm, sync paket, backup. Semua lokal.
+// Tab Saya: profil aktif dengan foto, tagihan, alarm, sync paket, backup. Semua lokal.
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/alarm/alarm_service.dart';
+import '../../core/log/app_log.dart';
+import '../../data/local/les_store.dart';
 import '../../data/local/parent_link.dart';
+import '../auth/active_profile.dart';
+import '../teacher/photo_service.dart';
 
-class ProfileTab extends StatefulWidget {
+class ProfileTab extends ConsumerStatefulWidget {
   const ProfileTab({super.key});
   @override
-  State<ProfileTab> createState() => _ProfileTabState();
+  ConsumerState<ProfileTab> createState() => _ProfileTabState();
 }
 
-class _ProfileTabState extends State<ProfileTab> {
+class _ProfileTabState extends ConsumerState<ProfileTab> {
   String? _linkCode;
   final _claim = TextEditingController();
 
@@ -20,20 +26,54 @@ class _ProfileTabState extends State<ProfileTab> {
     super.dispose();
   }
 
+  Future<void> _changePhoto(String profileId) async {
+    try {
+      final path = await PhotoService().takeProfilePhoto();
+      await ref.read(lesStoreProvider).updatePhoto(profileId, path);
+      ref.invalidate(activeProfileProvider);
+      AppLog.record('photo_change', profileId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto profil terpasang otomatis.')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final active = ref.watch(activeProfileProvider);
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text('Akun Saya', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
-          const Card(
-            child: ListTile(
-              leading: CircleAvatar(child: Icon(Icons.person)),
-              title: Text('Sinta . Siswa'),
-              subtitle: Text('Kelas 8 . PIN aktif'),
-            ),
+          active.when(
+            loading: () => const Card(child: ListTile(title: Text('Memuat profil...'))),
+            error: (e, _) => Card(child: ListTile(title: Text('Gagal: $e'))),
+            data: (p) {
+              final photo = p?.photoPath;
+              final hasPhoto = photo != null &&
+                  photo.isNotEmpty &&
+                  File(photo).existsSync();
+              return Card(
+                child: ListTile(
+                  leading: hasPhoto
+                      ? CircleAvatar(backgroundImage: FileImage(File(photo)))
+                      : const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text('${p?.name ?? '-'} . ${p?.role ?? '-'}'),
+                  subtitle: Text(p?.subject != null && (p?.subject ?? '').isNotEmpty
+                      ? '${p?.subject} . PIN aktif'
+                      : 'PIN aktif'),
+                  trailing: TextButton(
+                    onPressed: p == null ? null : () => _changePhoto(p.id),
+                    child: const Text('Ganti Foto'),
+                  ),
+                ),
+              );
+            },
           ),
           Card(
             child: Column(

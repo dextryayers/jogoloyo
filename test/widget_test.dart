@@ -1,8 +1,9 @@
-// Uji asap Les Jogoloyo: app bisa dibangun dan 5 tab tampil labelnya.
-// Gate startup dioverride dengan DB memori berisi owner agar langsung ke /home.
+// Uji asap Les Jogoloyo: splash lalu 5 tab tampil labelnya.
+// Flag onboarding dan guru dilewati via mock prefs agar langsung ke /home.
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jogoloyo_les/data/local/app_db.dart';
 import 'package:jogoloyo_les/data/local/les_store.dart';
 import 'package:jogoloyo_les/features/material/learn_providers.dart';
@@ -11,6 +12,11 @@ import 'package:jogoloyo_les/main.dart';
 
 void main() {
   testWidgets('App tampil 5 tab bawah', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_done': true,
+      'guru_setup_done': true,
+      'active_profile_id': 'owner-1',
+    });
     final db = AppDb.forTesting(NativeDatabase.memory());
     await db.into(db.profiles).insert(
           ProfilesCompanion.insert(

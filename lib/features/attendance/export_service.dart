@@ -42,5 +42,6 @@ class ExportService {
     return f;
   }
 
-  Future<void> share(File f) => Share.shareXFiles([XFile(f.path)], text: 'Rekap absensi Les Jogoloyo');
+  Future<void> share(File f) =>
+      SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'Rekap absensi Les Jogoloyo'));
 }

@@ -83,6 +83,12 @@ class LesStore {
     return p;
   }
 
+  Future<void> updatePhoto(String profileId, String path) async {
+    await (db.update(db.profiles)..where((t) => t.id.equals(profileId))).write(
+      ProfilesCompanion(photoPath: Value(path)),
+    );
+  }
+
   Stream<List<Profile>> watchProfiles() =>
       (db.select(db.profiles)..orderBy([(t) => OrderingTerm(expression: t.createdAt)]))
           .watch();

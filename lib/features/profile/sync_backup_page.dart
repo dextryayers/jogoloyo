@@ -47,7 +47,7 @@ class _State extends ConsumerState<SyncBackupPage> {
                   trailing: ElevatedButton(
                     onPressed: () async {
                       final f = await ref.read(distribusiProvider).exportDistribusi();
-                      await Share.shareXFiles([XFile(f.path)], text: 'Paket distribusi Jogoloyo');
+                      await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'Paket distribusi Jogoloyo'));
                       setState(() => _log = 'Distribusi diekspor: ${f.path}');
                     },
                     child: const Text('Ekspor'),
@@ -60,9 +60,9 @@ class _State extends ConsumerState<SyncBackupPage> {
                   subtitle: const Text('Revision besar menang. Duplikat tidak ganda.'),
                   trailing: ElevatedButton(
                     onPressed: () async {
-                      final r = await FilePicker.platform.pickFiles();
-                      if (r == null) return;
-                      final res = await ref.read(distribusiProvider).importDistribusi(File(r.files.single.path!));
+                      final files = await FilePicker.pickFiles();
+                      if (files.isEmpty) return;
+                      final res = await ref.read(distribusiProvider).importDistribusi(File(files.single.path!));
                       setState(() => _log = 'Impor selesai: ${res.updated} diperbarui, ${res.skipped} dilewati. Alarm ikut disesuaikan.');
                     },
                     child: const Text('Impor'),
@@ -81,7 +81,7 @@ class _State extends ConsumerState<SyncBackupPage> {
                   trailing: ElevatedButton(
                     onPressed: () async {
                       final f = await ref.read(backupProvider).backupNow();
-                      await Share.shareXFiles([XFile(f.path)], text: 'Backup Les Jogoloyo. Simpan di 2 media.');
+                      await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'Backup Les Jogoloyo. Simpan di 2 media.'));
                       final p = await SharedPreferences.getInstance();
                       setState(() => _log = 'Backup selesai. Terakhir: ${p.getString('last_backup')}');
                     },
@@ -122,13 +122,13 @@ class _State extends ConsumerState<SyncBackupPage> {
                   ElevatedButton.icon(
                     onPressed: () async {
                       try {
-                        final r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['zip']);
-                        if (r == null) return;
+                        final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['zip']);
+                        if (files.isEmpty) return;
                         final db = ref.read(appDbProvider);
                         final owners = await (db.select(db.profiles)..where((t) => t.role.equals('OWNER'))).get();
                         if (owners.isEmpty) throw Exception('Belum ada owner di HP ini.');
                         final msg = await ref.read(backupProvider).restoreFromZip(
-                              zip: File(r.files.single.path!),
+                              zip: File(files.single.path!),
                               ownerId: owners.first.id,
                               pin: _pin.text,
                             );

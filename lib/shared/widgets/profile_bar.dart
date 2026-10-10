@@ -1,5 +1,7 @@
 // Bar profil aktif untuk HP bersama. Warna beda per peran agar tidak salah input.
 // OWNER hijau tua, ADMIN abu tua, GURU hijau, SISWA krem gelap, ORTU abu.
+// Foto profil tampil langsung dari file lokal jika ada.
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 
@@ -9,7 +11,8 @@ class ActiveProfile {
   final String id;
   final String name;
   final LocalRole role;
-  const ActiveProfile({required this.id, required this.name, required this.role});
+  final String? photoPath;
+  const ActiveProfile({required this.id, required this.name, required this.role, this.photoPath});
 
   String get label {
     switch (role) {
@@ -24,6 +27,21 @@ class ActiveProfile {
       case LocalRole.ortu:
         return 'Ortu';
     }
+  }
+}
+
+LocalRole roleFromString(String r) {
+  switch (r) {
+    case 'OWNER':
+      return LocalRole.owner;
+    case 'ADMIN':
+      return LocalRole.admin;
+    case 'GURU':
+      return LocalRole.guru;
+    case 'ORTU':
+      return LocalRole.ortu;
+    default:
+      return LocalRole.siswa;
   }
 }
 
@@ -54,11 +72,15 @@ class ProfileBar extends StatelessWidget {
       decoration: BoxDecoration(color: _bg(profile.role), borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.person, size: 18, color: JogloColors.ink),
-          ),
+          (profile.photoPath != null &&
+                  profile.photoPath!.isNotEmpty &&
+                  File(profile.photoPath!).existsSync())
+              ? CircleAvatar(radius: 16, backgroundImage: FileImage(File(profile.photoPath!)))
+              : const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, size: 18, color: JogloColors.ink),
+                ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(

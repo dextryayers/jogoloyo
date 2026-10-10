@@ -45,9 +45,9 @@ class BillDetailPage extends ConsumerWidget {
               ),
               ElevatedButton.icon(
                 onPressed: () async {
-                  final r = await FilePicker.platform.pickFiles(type: FileType.image);
-                  if (r == null) return;
-                  final src = File(r.files.single.path!);
+                  final files = await FilePicker.pickFiles(type: FileType.image);
+                  if (files.isEmpty) return;
+                  final src = File(files.single.path!);
                   final docs = await getApplicationDocumentsDirectory();
                   final dst = File(p.join(docs.path, 'bukti_${const Uuid().v4()}.jpg'));
                   await src.copy(dst.path);
@@ -101,7 +101,7 @@ class BillDetailPage extends ConsumerWidget {
                           studentName: 'Sinta',
                           receiptNo: no,
                         );
-                        await Share.shareXFiles([XFile(f.path)], text: 'Kwitansi Les Jogoloyo $no');
+                        await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'Kwitansi Les Jogoloyo $no'));
                       },
                 icon: const Icon(Icons.receipt_outlined),
                 label: const Text('Buat dan Bagikan Kwitansi PDF'),

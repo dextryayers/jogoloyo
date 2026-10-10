@@ -1,4 +1,4 @@
-// Router 5 tab bawah dengan StatefulShellRoute. Tanpa auth server.
+// Router utama: splash, onboarding, setup guru, lalu 5 tab bawah.
 // Detail sesi dan form di luar shell agar ada tombol kembali yang jelas.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -24,12 +24,17 @@ import '../features/profile/wipe_page.dart';
 import '../features/profile/profile_tab.dart';
 import '../features/auth/setup_owner_page.dart';
 import '../features/auth/pin_page.dart';
-import '../features/auth/startup_gate.dart';
+import '../features/auth/splash_page.dart';
+import '../features/auth/onboarding_page.dart';
+import '../features/auth/guru_setup_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(path: '/', builder: (c, s) => const StartupGate()),
+    GoRoute(path: '/', builder: (c, s) => const SplashPage()),
+    GoRoute(path: '/startup', builder: (c, s) => const SplashPage()),
+    GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingPage()),
+    GoRoute(path: '/guru-setup', builder: (c, s) => const GuruSetupPage()),
     GoRoute(path: '/setup', builder: (c, s) => const SetupOwnerPage()),
     GoRoute(path: '/pin', builder: (c, s) => const PinPage()),
     GoRoute(path: '/schedule/new', builder: (c, s) => const SessionFormPage()),
