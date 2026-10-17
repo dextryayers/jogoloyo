@@ -415,4 +415,4 @@ Lihat `CHANGELOG.md` untuk riwayat versi dan `plan.md` untuk spesifikasi produk 
 V.02 simpel: hanya pengingat plus catatan. File fitur lama sudah dihapus total dari kode.
 Lapor masalah dari aplikasi ikut mengirim file log agar admin cepat paham.
 
-##Copyright 2026
+## Copyright 2026 By AniipID
