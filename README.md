@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/stack-Flutter_Kotlin-purple" alt="stack" />
 </p>
 
-> Semua diagram di bawah bisa diklik untuk tampil penuh (maximize) di GitHub.
+
 
 ---
 
