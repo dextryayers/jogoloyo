@@ -5,7 +5,7 @@
 <h1 align="center">Les Jogoloyo</h1>
 
 <p align="center">
-  <b>Aplikasi pengingat berbunyi plus catatan. 100 persen offline.</b>
+  <b>Aplikasi pengingat berbunyi plus catatan.</b>
 </p>
 
 <p align="center">
