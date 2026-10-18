@@ -18,6 +18,7 @@ object AlarmStore {
         val sound: String,
         val level: Int,
         val vibrate: Boolean,
+        val daily: Boolean = false,
     )
 
     fun put(
@@ -30,6 +31,7 @@ object AlarmStore {
         sound: String = "suara1",
         level: Int = 200,
         vibrate: Boolean = true,
+        daily: Boolean = false,
     ) {
         val s = ctx.getSharedPreferences(P, Context.MODE_PRIVATE)
         val base = "t_${key}_$off"
@@ -40,6 +42,7 @@ object AlarmStore {
             .putString("${base}_sound", sound)
             .putInt("${base}_level", level)
             .putBoolean("${base}_vib", vibrate)
+            .putBoolean("${base}_daily", daily)
             .apply()
         log(ctx, "scheduled $key H-$off at $triggerAt")
     }
@@ -55,24 +58,46 @@ object AlarmStore {
             e.remove("${base}_sound")
             e.remove("${base}_level")
             e.remove("${base}_vib")
+            e.remove("${base}_daily")
         }
         e.apply()
         log(ctx, "cancelled $key")
     }
 
-    fun markFired(ctx: Context, key: String, off: Int) {
+    fun markFired(ctx: Context, key: String, off: Int, daily: Boolean = false) {
         log(ctx, "fired $key H-$off at ${System.currentTimeMillis()}")
-        // Satu tembakan: hapus agar tidak dobel bila dijadwalkan ulang.
         val s = ctx.getSharedPreferences(P, Context.MODE_PRIVATE)
         val base = "t_${key}_$off"
-        s.edit()
-            .remove(base)
-            .remove("${base}_title")
-            .remove("${base}_room")
-            .remove("${base}_sound")
-            .remove("${base}_level")
-            .remove("${base}_vib")
-            .apply()
+        val entry = entries(ctx).firstOrNull { it.key == key && it.off == off }
+        if (daily || (entry?.daily == true)) {
+            // Harian: geser trigger ke hari berikutnya dan simpan ulang.
+            val trigger = (entry?.triggerAt ?: System.currentTimeMillis()) + 24L * 60 * 60 * 1000
+            val title = entry?.title ?: ""
+            val room = entry?.room ?: ""
+            val sound = entry?.sound ?: "suara1"
+            val level = entry?.level ?: 200
+            val vibrate = entry?.vibrate ?: true
+            s.edit()
+                .putLong(base, trigger)
+                .putString("${base}_title", title)
+                .putString("${base}_room", room)
+                .putString("${base}_sound", sound)
+                .putInt("${base}_level", level)
+                .putBoolean("${base}_vib", vibrate)
+                .putBoolean("${base}_daily", true)
+                .apply()
+            log(ctx, "rescheduled daily $key H-$off at $trigger")
+        } else {
+            s.edit()
+                .remove(base)
+                .remove("${base}_title")
+                .remove("${base}_room")
+                .remove("${base}_sound")
+                .remove("${base}_level")
+                .remove("${base}_vib")
+                .remove("${base}_daily")
+                .apply()
+        }
     }
 
     fun entries(ctx: Context): List<Entry> {
@@ -94,6 +119,7 @@ object AlarmStore {
                     sound = s.getString("${k}_sound", "suara1") ?: "suara1",
                     level = s.getInt("${k}_level", 200),
                     vibrate = s.getBoolean("${k}_vib", true),
+                    daily = s.getBoolean("${k}_daily", false),
                 )
             )
         }

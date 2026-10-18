@@ -15,6 +15,7 @@ class AlarmService {
     String sound = 'suara1',
     int level = 200,
     bool vibrate = true,
+    bool daily = false,
   }) async {
     try {
       await _ch.invokeMethod('scheduleSessionAlarm', {
@@ -26,6 +27,7 @@ class AlarmService {
         'sound': sound,
         'level': level,
         'vibrate': vibrate,
+        'daily': daily,
       });
       return true;
     } on PlatformException {

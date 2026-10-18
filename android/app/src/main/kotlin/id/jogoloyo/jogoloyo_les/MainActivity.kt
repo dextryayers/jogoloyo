@@ -32,7 +32,8 @@ class MainActivity : FlutterActivity() {
                     val level = (call.argument<Int>("level")
                         ?: if (call.argument<Boolean>("loud") != false) 200 else 100)
                     val vibrate = call.argument<Boolean>("vibrate") ?: true
-                    val ok = AlarmScheduler.schedule(this, key, iso, off, title, room, sound, level, vibrate)
+                    val daily = call.argument<Boolean>("daily") ?: false
+                    val ok = AlarmScheduler.schedule(this, key, iso, off, title, room, sound, level, vibrate, daily)
                     if (ok) res.success(true) else res.error("SCHEDULER_BUSY", "Gagal menjadwalkan. Coba lagi.", null)
                 }
                 "cancelSessionAlarm" -> {

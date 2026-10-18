@@ -45,10 +45,10 @@ class _State extends ConsumerState<ReminderFormPage> {
       final all = await store.loadReminders();
       final r = all.where((e) => e.id == widget.reminderId).firstOrNull;
       if (r != null) {
-        final w = r.whenUtc.toUtc().add(const Duration(hours: 7));
-        _title.text = r.title;
-        _day = DateTime(w.year, w.month, w.day);
-        _time = TimeOfDay(hour: w.hour, minute: w.minute);
+         final w = r.whenUtc.toUtc().add(const Duration(hours: 7));
+         _title.text = r.title;
+         _day = DateTime.utc(w.year, w.month, w.day);
+         _time = TimeOfDay(hour: w.hour, minute: w.minute);
         _daily = r.daily;
         _sound = r.sound;
         _level = r.level;
@@ -204,8 +204,8 @@ class _State extends ConsumerState<ReminderFormPage> {
             child: ElevatedButton(
               onPressed: () async {
                 final messenger = ScaffoldMessenger.of(context);
-                final wib = DateTime(_day.year, _day.month, _day.day, _time.hour, _time.minute);
-                var utc = wib.subtract(const Duration(hours: 7));
+                 final wib = DateTime.utc(_day.year, _day.month, _day.day, _time.hour, _time.minute);
+                 var utc = wib.subtract(const Duration(hours: 7));
                 final hm =
                     '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}';
                 if (!_daily && !utc.isAfter(DateTime.now().toUtc())) {

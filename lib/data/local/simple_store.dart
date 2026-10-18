@@ -166,8 +166,8 @@ class SimpleStore {
   // WIB HH:mm ke DateTime UTC hari ini.
   DateTime todayWibToUtc(String hm) {
     final parts = hm.split(':');
-    final now = DateTime.now();
-    final wib = DateTime(now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
+    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final wib = DateTime.utc(now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
     return wib.subtract(const Duration(hours: 7));
   }
 
@@ -206,17 +206,18 @@ class SimpleStore {
         can++;
         continue;
       }
-      final ok = await alarm.schedule(
-        sessionId: r.id,
-        profileId: 'me',
-        startUtc: when,
-        offsets: const [0],
-        title: r.title.isEmpty ? 'Pengingat' : r.title,
-        room: '',
-        sound: r.sound,
-        level: r.level,
-        vibrate: r.vibrate,
-      );
+       final ok = await alarm.schedule(
+         sessionId: r.id,
+         profileId: 'me',
+         startUtc: when,
+         offsets: const [0],
+         title: r.title.isEmpty ? 'Pengingat' : r.title,
+         room: '',
+         sound: r.sound,
+         level: r.level,
+         vibrate: r.vibrate,
+         daily: r.daily,
+       );
       if (ok) sch++;
     }
     if (changed) await saveReminders(all);

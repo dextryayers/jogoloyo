@@ -27,6 +27,7 @@ class BootReceiver : BroadcastReceiver() {
                     putExtra("sound", e.sound)
                     putExtra("level", e.level)
                     putExtra("vibrate", e.vibrate)
+                    putExtra("daily", e.daily)
                 }
                 val req = AlarmStore.reqCode(e.key, e.off)
                 val pi = PendingIntent.getBroadcast(

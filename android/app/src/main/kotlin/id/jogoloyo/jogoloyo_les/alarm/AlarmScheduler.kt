@@ -19,7 +19,8 @@ object AlarmScheduler {
         room: String,
         sound: String = "suara1",
         level: Int = 200,
-        vibrate: Boolean = true
+        vibrate: Boolean = true,
+        daily: Boolean = false
     ): Boolean {
         return try {
             val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -36,6 +37,7 @@ object AlarmScheduler {
                     putExtra("sound", sound)
                     putExtra("level", level)
                     putExtra("vibrate", vibrate)
+                    putExtra("daily", daily)
                 }
                 val pi = PendingIntent.getBroadcast(
                     ctx, req, i,
@@ -50,7 +52,7 @@ object AlarmScheduler {
                 } else {
                     am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi)
                 }
-                AlarmStore.put(ctx, sessionKey, off, trigger, title, room, sound, level, vibrate)
+                AlarmStore.put(ctx, sessionKey, off, trigger, title, room, sound, level, vibrate, daily)
             }
             true
         } catch (e: Exception) {
