@@ -6,15 +6,15 @@ import '../../app/theme.dart';
 class EmptyState extends StatelessWidget {
   final String title;
   final String desc;
-  final String actionLabel;
-  final VoidCallback onAction;
+  final String? actionLabel;
+  final VoidCallback? onAction;
   final IconData icon;
   const EmptyState({
     super.key,
     required this.title,
     required this.desc,
-    required this.actionLabel,
-    required this.onAction,
+    this.actionLabel,
+    this.onAction,
     this.icon = Icons.event_note,
   });
 
@@ -39,8 +39,10 @@ class EmptyState extends StatelessWidget {
             Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(desc, textAlign: TextAlign.center, style: const TextStyle(color: JogloColors.muted)),
-            const SizedBox(height: 12),
-            ElevatedButton(onPressed: onAction, child: Text(actionLabel)),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 12),
+              ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
+            ],
           ],
         ),
       ),

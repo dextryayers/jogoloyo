@@ -1,5 +1,5 @@
-// Tab Catatan: notepad rapi. Grup Disematkan, Hari ini, Kemarin, Sebelumnya.
-// Cari, sematkan via tahan, geser hapus plus urungkan, urut baru atau lama, FAB tulis.
+// Tab Catatan: daftar notepad modern. Cari, saring, sematkan, hapus geser, urutkan.
+// Catatan tersimpan lokal di HP. Buka kartu untuk ubah, ekspor, atau hapus.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +14,24 @@ const _strips = [
   Color(0xFF6D4C41),
 ];
 
+const _bulan = [
+  '',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'Mei',
+  'Jun',
+  'Jul',
+  'Agu',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Des',
+];
+
+enum _Filter { semua, disematkan, hariIni }
+
 class NotesTab extends ConsumerStatefulWidget {
   const NotesTab({super.key});
   @override
@@ -21,219 +39,368 @@ class NotesTab extends ConsumerStatefulWidget {
 }
 
 class _State extends ConsumerState<NotesTab> {
+  final _search = TextEditingController();
   String _q = '';
   bool _newestFirst = true;
+  _Filter _filter = _Filter.semua;
 
   @override
-  Widget build(BuildContext context) {
-    final async = ref.watch(notesProvider);
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        floatingActionButton: FloatingActionButton.extended(
-           onPressed: () async {
-             await context.push('/note/new');
-             ref.invalidate(notesProvider);
-           },
-          icon: const Icon(Icons.edit_outlined),
-          label: const Text('Tulis'),
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: async.when(
-                      loading: () => const Text('Catatan',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                      error: (_, _) => const Text('Catatan',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                      data: (list) => Text('Catatan . ${list.length}',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: _newestFirst ? 'Terbaru dulu' : 'Terlama dulu',
-                    icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
-                    onPressed: () => setState(() => _newestFirst = !_newestFirst),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Cari judul atau isi',
-                  prefixIcon: Icon(Icons.search),
-                  filled: true,
-                ),
-                onChanged: (v) => setState(() => _q = v.toLowerCase()),
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(notesProvider);
-                  await ref.read(notesProvider.future);
-                },
-                child: async.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => ErrorView(
-                    message: 'Gagal: $e', onRetry: () => ref.invalidate(notesProvider)),
-                data: (list) {
-                  var shown = _q.isEmpty
-                      ? list
-                      : list
-                          .where((e) => '${e.title} ${e.body}'.toLowerCase().contains(_q))
-                          .toList();
-                  shown = [...shown];
-                  shown.sort((a, b) {
-                    if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
-                    return _newestFirst
-                        ? b.updatedAt.compareTo(a.updatedAt)
-                        : a.updatedAt.compareTo(b.updatedAt);
-                  });
-                  if (shown.isEmpty) {
-                    return EmptyState(
-                      title: _q.isEmpty ? 'Belum ada catatan' : 'Tidak ketemu',
-                      desc: _q.isEmpty
-                          ? 'Tulis hal penting agar tidak lupa. Ketuk kartu untuk buka dan ubah lagi.'
-                          : 'Coba kata kunci lain.',
-                      actionLabel: 'Tulis',
-                      icon: Icons.edit_outlined,
-                      onAction: () => context.push('/note/new'),
-                    );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
-                    itemCount: shown.length,
-                    itemBuilder: (c, i) {
-                      final n = shown[i];
-                      final header = _headerFor(shown, i);
-                      final words = n.body.trim().isEmpty
-                          ? 0
-                          : n.body.trim().split(RegExp(r'\s+')).length;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (header != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8, bottom: 4),
-                              child: Text(header,
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: JogloColors.muted)),
-                            ),
-                          Dismissible(
-                            key: ValueKey(n.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: JogloColors.danger,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.delete_outline, color: Colors.white),
-                            ),
-                            confirmDismiss: (_) async {
-                              return await showDialog<bool>(
-                                    context: context,
-                                    builder: (d) => AlertDialog(
-                                      title: const Text('Hapus catatan'),
-                                      content: Text(
-                                          '"${n.title.isEmpty ? '(Tanpa judul)' : n.title}" dihapus?'),
-                                      actions: [
-                                        TextButton(
-                                            onPressed: () => Navigator.pop(d, false),
-                                            child: const Text('Batal')),
-                                        ElevatedButton(
-                                            onPressed: () => Navigator.pop(d, true),
-                                            child: const Text('Hapus')),
-                                      ],
-                                    ),
-                                  ) ??
-                                  false;
-                            },
-                            onDismissed: (_) async {
-                              await ref.read(simpleStoreProvider).deleteNote(n.id);
-                              ref.invalidate(notesProvider);
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: const Text('Catatan dihapus.'),
-                                action: SnackBarAction(
-                                  label: 'Urungkan',
-                                  onPressed: () async {
-                                    await ref.read(simpleStoreProvider).saveNote(
-                                          id: n.id,
-                                          title: n.title,
-                                          body: n.body,
-                                        );
-                                    ref.invalidate(notesProvider);
-                                  },
-                                ),
-                              ));
-                            },
-                            child: _NoteCard(
-                              title: n.title.isEmpty ? '(Tanpa judul)' : n.title,
-                              body: n.body,
-                              date: _date(n.updatedAt),
-                              words: words,
-                              pinned: n.pinned,
-                              strip: _strips[i % _strips.length],
-                               onTap: () async {
-                                 await context.push('/note/${n.id}');
-                                 ref.invalidate(notesProvider);
-                               },
-                              onPin: () async {
-                                await ref.read(simpleStoreProvider).togglePin(n.id);
-                                ref.invalidate(notesProvider);
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-              ),
-            ),
-          ],
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _openEditor(String? id) async {
+    await context.push(id == null ? '/note/new' : '/note/$id');
+    if (!mounted) return;
+    ref.invalidate(notesProvider);
+  }
+
+  Future<void> _delete(Note n) async {
+    await ref.read(simpleStoreProvider).deleteNote(n.id);
+    ref.invalidate(notesProvider);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Catatan "${_label(n.title)}" dihapus.'),
+        action: SnackBarAction(
+          label: 'Urungkan',
+          onPressed: () async {
+            await ref
+                .read(simpleStoreProvider)
+                .saveNote(id: n.id, title: n.title, body: n.body);
+            ref.invalidate(notesProvider);
+          },
         ),
       ),
     );
   }
 
-  String? _headerFor(List<Note> list, int i) {
-    String group(Note n) {
-      if (n.pinned) return 'Disematkan';
-      final w = n.updatedAt.toUtc().add(const Duration(hours: 7));
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final day = DateTime(w.year, w.month, w.day);
-      final diff = today.difference(day).inDays;
-      if (diff <= 0) return 'Hari ini';
-      if (diff == 1) return 'Kemarin';
-      return 'Sebelumnya';
+  Future<bool> _confirmDelete(Note n) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (d) => AlertDialog(
+            title: const Text('Hapus catatan'),
+            content: Text('"${_label(n.title)}" dihapus dari HP ini?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(d, false),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: JogloColors.danger,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(d, true),
+                child: const Text('Hapus'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(notesProvider);
+    final count = async.valueOrNull?.length ?? 0;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openEditor(null),
+        icon: const Icon(Icons.edit_outlined),
+        label: const Text('Tulis'),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Header(count: count, newestFirst: _newestFirst, onSort: _toggleSort),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: TextField(
+              controller: _search,
+              textInputAction: TextInputAction.search,
+              onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
+              decoration: InputDecoration(
+                hintText: 'Cari judul atau isi catatan',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _q.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Bersihkan pencarian',
+                        onPressed: () {
+                          _search.clear();
+                          setState(() => _q = '');
+                        },
+                      ),
+                isDense: true,
+                filled: true,
+                fillColor: JogloColors.paper,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          _FilterBar(
+            active: _filter,
+            onChanged: (v) => setState(() => _filter = v),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(notesProvider);
+                await ref.read(notesProvider.future);
+              },
+              child: async.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                error: (e, _) => ErrorView(
+                  message: 'Gagal memuat catatan: $e',
+                  onRetry: () => ref.invalidate(notesProvider),
+                ),
+                data: (list) {
+                  final shown = _apply(list);
+                  if (shown.isEmpty) {
+                    return LayoutBuilder(
+                      builder: (context, c) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: c.maxHeight,
+                          child: _emptyState(),
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+                    itemCount: shown.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      final n = shown[i];
+                      return Dismissible(
+                        key: ValueKey(n.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 22),
+                          decoration: BoxDecoration(
+                            color: JogloColors.danger,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Hapus',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.delete_outline, color: Colors.white),
+                            ],
+                          ),
+                        ),
+                        confirmDismiss: (_) => _confirmDelete(n),
+                        onDismissed: (_) => _delete(n),
+                        child: _NoteCard(
+                          title: _label(n.title),
+                          body: n.body,
+                          date: _date(n.updatedAt),
+                          words: _words(n.body),
+                          pinned: n.pinned,
+                          strip: _strips[i % _strips.length],
+                          onTap: () => _openEditor(n.id),
+                          onPin: () async {
+                            await ref
+                                .read(simpleStoreProvider)
+                                .togglePin(n.id);
+                            ref.invalidate(notesProvider);
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleSort() {
+    setState(() => _newestFirst = !_newestFirst);
+    ref.invalidate(notesProvider);
+  }
+
+  List<Note> _apply(List<Note> list) {
+    var out = list.where((n) {
+      if (_q.isEmpty) return true;
+      return '${n.title} ${n.body}'.toLowerCase().contains(_q);
+    }).toList();
+
+    final nowWib = DateTime.now().toUtc().add(const Duration(hours: 7));
+    switch (_filter) {
+      case _Filter.semua:
+        break;
+      case _Filter.disematkan:
+        out = out.where((n) => n.pinned).toList();
+        break;
+      case _Filter.hariIni:
+        out = out.where((n) {
+          if (n.pinned) return true;
+          final w = n.updatedAt.toUtc().add(const Duration(hours: 7));
+          return w.year == nowWib.year &&
+              w.month == nowWib.month &&
+              w.day == nowWib.day;
+        }).toList();
+        break;
     }
 
-    final g = group(list[i]);
-    if (i == 0) return g;
-    if (group(list[i - 1]) == g) return null;
-    return g;
+    out.sort((a, b) {
+      if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+      return _newestFirst
+          ? b.updatedAt.compareTo(a.updatedAt)
+          : a.updatedAt.compareTo(b.updatedAt);
+    });
+    return out;
+  }
+
+  Widget _emptyState() {
+    final searching = _q.isNotEmpty;
+    return switch ((searching, _filter)) {
+      (true, _) => EmptyState(
+          title: 'Tidak ketemu',
+          desc: 'Coba kata kunci lain.',
+          icon: Icons.search_off,
+          actionLabel: 'Bersihkan',
+          onAction: () {
+            _search.clear();
+            setState(() {
+              _q = '';
+              _filter = _Filter.semua;
+            });
+          },
+        ),
+      (false, _Filter.disematkan) => const EmptyState(
+          title: 'Belum ada yang disematkan',
+          desc: 'Tekan tombol Semat pada catatan agar mudah dicari.',
+          icon: Icons.push_pin_outlined,
+        ),
+      (false, _) => EmptyState(
+          title: 'Belum ada catatan',
+          desc: 'Tulis hal penting agar tidak lupa. Tersimpan lokal di HP ini.',
+          actionLabel: 'Tulis',
+          icon: Icons.edit_outlined,
+          onAction: () => _openEditor(null),
+        ),
+    };
+  }
+
+  String _label(String t) => t.trim().isEmpty ? '(Tanpa judul)' : t.trim();
+
+  int _words(String body) {
+    final t = body.trim();
+    return t.isEmpty ? 0 : t.split(RegExp(r'\s+')).length;
   }
 
   String _date(DateTime utc) {
-    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     final w = utc.toUtc().add(const Duration(hours: 7));
-    return '${w.day} ${months[w.month]} ${w.year} . ${w.hour.toString().padLeft(2, '0')}:${w.minute.toString().padLeft(2, '0')}';
+    final hh = w.hour.toString().padLeft(2, '0');
+    final mm = w.minute.toString().padLeft(2, '0');
+    return '${w.day} ${_bulan[w.month]} ${w.year} . $hh:$mm';
+  }
+}
+
+class _Header extends StatelessWidget {
+  final int count;
+  final bool newestFirst;
+  final VoidCallback onSort;
+
+  const _Header({
+    required this.count,
+    required this.newestFirst,
+    required this.onSort,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Catatan',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  count == 0
+                      ? 'Belum ada catatan tersimpan'
+                      : '$count catatan tersimpan lokal di HP',
+                  style: const TextStyle(fontSize: 12, color: JogloColors.muted),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: newestFirst ? 'Urutkan terbaru dulu' : 'Urutkan terlama dulu',
+            onPressed: onSort,
+            icon: Icon(
+              newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  final _Filter active;
+  final ValueChanged<_Filter> onChanged;
+
+  const _FilterBar({required this.active, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          _chip('Semua', _Filter.semua),
+          const SizedBox(width: 8),
+          _chip('Disematkan', _Filter.disematkan),
+          const SizedBox(width: 8),
+          _chip('Hari ini', _Filter.hariIni),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, _Filter value) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: active == value,
+      onSelected: (_) => onChanged(value),
+      visualDensity: VisualDensity.compact,
+    );
   }
 }
 
@@ -246,6 +413,7 @@ class _NoteCard extends StatelessWidget {
   final Color strip;
   final VoidCallback onTap;
   final VoidCallback onPin;
+
   const _NoteCard({
     required this.title,
     required this.body,
@@ -259,75 +427,112 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasBody = body.trim().isNotEmpty;
     return Card(
+      margin: EdgeInsets.zero,
+      elevation: pinned ? 2 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: pinned ? strip : JogloColors.line,
+          width: pinned ? 1.5 : 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         onLongPress: onPin,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 6,
-              decoration: BoxDecoration(
-                color: strip,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(title,
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                        if (pinned)
-                          const Icon(Icons.push_pin, size: 16, color: JogloColors.warning),
-                      ],
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(left: BorderSide(color: strip, width: 5)),
+          ),
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (body.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(body,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: JogloColors.muted, fontSize: 13)),
-                    ],
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text('$date . $words kata',
-                              style: const TextStyle(fontSize: 11, color: JogloColors.muted)),
-                        ),
-                        InkWell(
-                          onTap: onPin,
-                          child: Text(pinned ? 'Lepas' : 'Semat',
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: JogloColors.primary)),
-                        ),
-                      ],
+                  ),
+                  if (pinned)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8, top: 2),
+                      child: Icon(
+                        Icons.push_pin,
+                        size: 16,
+                        color: JogloColors.warning,
+                      ),
                     ),
-                  ],
-                ),
+                ],
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 8),
-              child: Icon(Icons.chevron_right, color: JogloColors.muted),
-            ),
-          ],
+              if (hasBody) ...[
+                const SizedBox(height: 6),
+                Text(
+                  body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: JogloColors.muted,
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.schedule,
+                    size: 13,
+                    color: JogloColors.muted,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '$date . $words kata',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: JogloColors.muted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: onPin,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        pinned ? 'Lepas' : 'Semat',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: JogloColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
