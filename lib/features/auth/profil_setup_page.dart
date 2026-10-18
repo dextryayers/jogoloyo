@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/log/app_log.dart';
 import '../../shared/widgets/app_logo.dart';
 import '../teacher/photo_service.dart';
-import '../../data/local/simple_store.dart';
 
 class ProfilSetupPage extends StatefulWidget {
   const ProfilSetupPage({super.key});
@@ -17,7 +16,6 @@ class ProfilSetupPage extends StatefulWidget {
 
 class _State extends State<ProfilSetupPage> {
   final _name = TextEditingController();
-  String _slot = 'Pagi';
   String _gender = 'Perempuan';
   String? _photo;
   bool _saving = false;
@@ -33,7 +31,6 @@ class _State extends State<ProfilSetupPage> {
     if (!mounted) return;
     setState(() {
       _name.text = p.getString('user_name') ?? '';
-      _slot = p.getString('user_slot') ?? 'Pagi';
       _gender = p.getString('user_gender') ?? 'Perempuan';
       _photo = p.getString('user_photo');
     });
@@ -77,20 +74,7 @@ class _State extends State<ProfilSetupPage> {
             controller: _name,
             decoration: const InputDecoration(labelText: 'Nama', hintText: 'Contoh: Ustazah Rina'),
           ),
-          const SizedBox(height: 12),
-          const Text('Jam utama', style: TextStyle(fontWeight: FontWeight.w700)),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final s in appSlots)
-                ChoiceChip(
-                  label: Text(s),
-                  selected: _slot == s,
-                  onSelected: (_) => setState(() => _slot = s),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
+const SizedBox(height: 12),
           const Text('Gender', style: TextStyle(fontWeight: FontWeight.w700)),
           Wrap(
             spacing: 8,
@@ -129,11 +113,10 @@ class _State extends State<ProfilSetupPage> {
                       }
                       setState(() => _saving = true);
                       final p = await SharedPreferences.getInstance();
-                      await p.setString('user_name', _name.text.trim());
-                      await p.setString('user_slot', _slot);
-                      await p.setString('user_gender', _gender);
-                      await p.setBool('profil_done', true);
-                      AppLog.record('profil_setup', _slot);
+await p.setString('user_name', _name.text.trim());
+                       await p.setString('user_gender', _gender);
+                       await p.setBool('profil_done', true);
+                       AppLog.record('profil_setup', _gender);
                       if (!context.mounted) return;
                       context.go('/notif-setup');
                     },

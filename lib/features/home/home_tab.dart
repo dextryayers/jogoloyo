@@ -77,10 +77,7 @@ class _State extends ConsumerState<HomeTab> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 12),
             Text(_greeting(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            const Text('Hari ini',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: JogloColors.muted)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             async.when(
               loading: () => const Card(
                   child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))),

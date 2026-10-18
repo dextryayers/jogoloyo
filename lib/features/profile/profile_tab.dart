@@ -52,7 +52,6 @@ class _State extends ConsumerState<ProfileTab> {
             builder: (c, snap) {
               final p = snap.data;
               final name = p?.getString('user_name') ?? active.valueOrNull?.name ?? '-';
-              final slot = p?.getString('user_slot') ?? 'Pagi';
               final gender = p?.getString('user_gender') ?? '-';
               final photo = p?.getString('user_photo') ?? active.valueOrNull?.photoPath;
               final hasPhoto = photo != null && photo.isNotEmpty && File(photo).existsSync();
@@ -66,7 +65,7 @@ class _State extends ConsumerState<ProfileTab> {
                           : const CircleAvatar(radius: 40, child: Icon(Icons.person, size: 40)),
                       const SizedBox(height: 8),
                       Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                      Text('Jam $slot . $gender'),
+                      Text(gender),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
