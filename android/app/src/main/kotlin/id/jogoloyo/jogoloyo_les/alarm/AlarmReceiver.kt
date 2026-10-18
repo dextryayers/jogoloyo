@@ -22,6 +22,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val urgent = off == 0
         if (urgent) {
             AlarmSoundPlayer.play(ctx, sound, level, vibrate, loop = true)
+            // Pengingat 10 menit sebelumnya sudah tidak relevan.
+            NotificationHelper.cancel(ctx, key, 10)
             NotificationHelper.show(ctx, key, off, title, room, urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
         } else {
             if (vibrate) AlarmSoundPlayer.vibrate(ctx, strong = false)
