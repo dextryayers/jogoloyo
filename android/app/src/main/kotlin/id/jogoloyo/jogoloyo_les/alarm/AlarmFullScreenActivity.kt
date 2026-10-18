@@ -1,36 +1,50 @@
 package id.jogoloyo.jogoloyo_les.alarm
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Layar alarm penuh bergaya panggilan masuk. Muncul saat jam alarm benar-benar
-// tiba. Geser ke atas atau tekan tombol untuk menghentikan bunyi dan getar.
+// Layar alarm penuh bergaya panggilan masuk dengan logo asli Les Jogoloyo.
+// Muncul tepat saat jam alarm tiba. Bunyi dan getar berjalan terus sampai
+// pengguna menekan tombol atau menggeser ke atas.
 class AlarmFullScreenActivity : Activity() {
     private var key: String = ""
     private var offsetMin: Int = 0
     private var startY: Float = 0f
     private var handle: LinearLayout? = null
+    private var pulse: ObjectAnimator? = null
+    private val clockHandler = Handler(Looper.getMainLooper())
+    private var clockView: TextView? = null
+    private var running = false
 
-    private val deepGreen = Color.parseColor("#0B1F14")
+    private val deepGreen = Color.parseColor("#07130C")
+    private val midGreen = Color.parseColor("#0E2A17")
     private val accent = Color.parseColor("#2E7D32")
+    private val accentDark = Color.parseColor("#1B5E20")
     private val danger = Color.parseColor("#C62828")
+    private val textMuted = Color.parseColor("#9FB8A6")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,172 +66,309 @@ class AlarmFullScreenActivity : Activity() {
         val room = intent.getStringExtra("room") ?: ""
 
         setContentView(buildUi(title, room))
-        // Getar dan bunyi sudah dijalankan AlarmReceiver sebelum layar ini muncul.
-        // Jangan getar ulang di sini supaya tidak getar dua kali.
+        startClock()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        running = true
+        pulse?.resume()
+        startClock()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        running = false
+        pulse?.pause()
+        clockHandler.removeCallbacksAndMessages(null)
+    }
+
+    override fun onDestroy() {
+        pulse?.cancel()
+        pulse = null
+        clockHandler.removeCallbacksAndMessages(null)
+        super.onDestroy()
     }
 
     private fun buildUi(title: String, room: String): View {
-        val root = LinearLayout(this).apply {
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(deepGreen)
+        }
+
+        // Latar gradien halus supaya tidak terasa polos.
+        val bg = View(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(midGreen, deepGreen)
+            )
+        }
+        root.addView(bg, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+
+        val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(deepGreen)
-            setPadding(dp(28), dp(56), dp(28), dp(32))
+            setPadding(dp(24), dp(48), dp(24), dp(28))
         }
+        root.addView(column, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
 
-        // Status atas: pengingat live.
-        val badge = TextView(this).apply {
-            text = "ALARM MASUK KELAS"
-            textSize = 13f
-            setTextColor(Color.parseColor("#A5D6A7"))
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.18f
-        }
-        root.addView(badge)
+        // Badge pengenal.
+        column.addView(badge())
 
-        root.addView(space(28))
-
-        // Lingkaran avatar ala panggilan masuk.
-        val initial = title.trim().take(1).uppercase().ifEmpty { "L" }
-        val avatar = TextView(this).apply {
-            text = initial
-            textSize = 44f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
+        // Logo asli di dalam lingkaran, denyut pelan seperti panggilan hidup.
+        val logoWrap = FrameLayout(this).apply {
+            setPadding(dp(10), dp(10), dp(10), dp(10))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(accent)
+                setColor(Color.parseColor("#12351E"))
             }
         }
-        root.addView(avatar, LinearLayout.LayoutParams(dp(112), dp(112)))
+        val logo = loadLogo()
+        if (logo != null) {
+            logoWrap.addView(ImageView(this).apply {
+                setImageBitmap(logo)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setBackgroundColor(Color.WHITE)
+                clipToOutline = true
+            }, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ))
+        } else {
+            logoWrap.addView(TextView(this).apply {
+                text = "JOGOLOYO"
+                textSize = 13f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+            }, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ))
+        }
+        val logoSize = dp(128)
+        column.addView(logoWrap, LinearLayout.LayoutParams(logoSize, logoSize))
+        startPulse(logoWrap)
 
-        root.addView(space(20))
+        column.addView(space(22))
 
-        root.addView(TextView(this).apply {
+        column.addView(TextView(this).apply {
             text = title
-            textSize = 28f
+            textSize = 30f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
+            setLineSpacing(dp(2).toFloat(), 1f)
         })
-        root.addView(space(8))
-        root.addView(TextView(this).apply {
+        column.addView(space(8))
+        column.addView(TextView(this).apply {
             text = if (room.isBlank()) "Les Jogoloyo" else room
             textSize = 15f
-            setTextColor(Color.parseColor("#B0BEC5"))
+            setTextColor(textMuted)
             gravity = Gravity.CENTER
         })
 
-        root.addView(space(6))
-        val clock = SimpleDateFormat("EEEE, d MMMM yyyy . HH:mm", Locale("in", "ID")).format(Date())
-        root.addView(TextView(this).apply {
-            text = clock
-            textSize = 13f
-            setTextColor(Color.parseColor("#78909C"))
+        column.addView(space(18))
+        val clock = TextView(this).apply {
+            textSize = 13.5f
+            setTextColor(Color.parseColor("#7E9C89"))
+            gravity = Gravity.CENTER
+        }
+        clockView = clock
+        column.addView(clock)
+
+        column.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
+
+        // Area geser ke atas ala panggilan.
+        val swipe = swipeArea()
+        column.addView(swipe, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(104)
+        ))
+
+        column.addView(space(14))
+        column.addView(callRow())
+        column.addView(space(2))
+        column.addView(TextView(this).apply {
+            text = "Bunyi dan getar berjalan terus. Hentikan lewat tombol di atas."
+            textSize = 11f
+            setTextColor(Color.parseColor("#5F7A69"))
             gravity = Gravity.CENTER
         })
 
-        // Pengingat 10 menit sebelumnya otomatis hilang begitu alarm menyala.
+        // Alarm baru menyala, pengingat 10 menit sebelumnya tidak perlu lagi.
         if (offsetMin != 0) {
             NotificationHelper.cancelAll(this, key)
         }
 
-        root.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
+        return root
+    }
 
-        // Area geser ke atas.
-        val swipeArea = FrameLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#10281A"))
-        }
-        val hint = TextView(this).apply {
-            text = "Geser ke atas untuk hentikan alarm"
-            textSize = 14f
-            setTextColor(Color.parseColor("#CFD8DC"))
+    private fun badge(): View {
+        val b = TextView(this).apply {
+            text = "ALARM MASUK KELAS"
+            textSize = 12f
+            setTextColor(Color.parseColor("#A5D6A7"))
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.2f
             gravity = Gravity.CENTER
+            setPadding(dp(18), dp(8), dp(18), dp(8))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.parseColor("#14331F"))
+                setStroke(dp(1), Color.parseColor("#1F5C31"))
+            }
         }
-        swipeArea.addView(
-            hint,
-            FrameLayout.LayoutParams(
+        val holder = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+                ViewGroup.LayoutParams.WRAP_CONTENT
             )
-        )
-        val handle = LinearLayout(this).apply {
+            addView(b, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            ))
+        }
+        return holder
+    }
+
+    private fun swipeArea(): View {
+        val area = FrameLayout(this).apply {
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.parseColor("#0F2A19"))
+                setStroke(dp(1), Color.parseColor("#1C4527"))
+            }
+        }
+        area.addView(TextView(this).apply {
+            text = "Geser ke atas untuk hentikan"
+            textSize = 13.5f
+            setTextColor(Color.parseColor("#B8CCC0"))
+            gravity = Gravity.CENTER
+        }, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+
+        val pill = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(dp(24), dp(14), dp(24), dp(14))
+            setPadding(dp(26), dp(12), dp(26), dp(12))
             background = GradientDrawable().apply {
-                cornerRadius = dp(28).toFloat()
-                setColor(Color.parseColor("#1B5E20"))
+                cornerRadius = dp(24).toFloat()
+                setColor(accentDark)
             }
             addView(TextView(this@AlarmFullScreenActivity).apply {
                 text = "STOP"
-                textSize = 15f
+                textSize = 14.5f
                 setTextColor(Color.WHITE)
                 typeface = Typeface.DEFAULT_BOLD
+                letterSpacing = 0.12f
             })
         }
-        val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        lp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        lp.bottomMargin = dp(16)
-        swipeArea.addView(handle, lp)
-        this.handle = handle
+        val lp = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        )
+        lp.bottomMargin = dp(14)
+        area.addView(pill, lp)
+        handle = pill
 
-        root.addView(swipeArea, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(96)))
-
-        root.addView(space(14))
-
-        // Dua tombol ala panggilan: batal merah, selesai hijau.
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        row.addView(callButton("Tolak", danger) { stopAndFinish() }, weighted())
-        row.addView(space(16))
-        row.addView(callButton("Sudah Di Lokasi", accent) { stopAndFinish() }, weighted())
-        root.addView(row)
-
-        // Geser ke atas untuk hentikan.
-        swipeArea.setOnTouchListener { _, ev ->
+        area.setOnTouchListener { _, ev ->
             when (ev.action) {
                 MotionEvent.ACTION_DOWN -> {
                     startY = ev.y
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    val dy = startY - ev.y
-                    if (dy > dp(70)) stopAndFinish()
+                    if (startY - ev.y > dp(70)) stopAndFinish()
                     true
                 }
                 else -> false
             }
         }
-
-        // Ketuk tombol STOP juga menghentikan alarm.
-        handle.setOnClickListener { stopAndFinish() }
-
-        return root
+        pill.setOnClickListener { stopAndFinish() }
+        return area
     }
 
-    private fun callButton(label: String, color: Int, onTap: () -> Unit): TextView {
+    private fun callRow(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        row.addView(
+            callButton("Tolak", danger),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        row.addView(space(14))
+        row.addView(
+            callButton("Sudah Di Lokasi", accent),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        return row
+    }
+
+    private fun callButton(label: String, color: Int): TextView {
         return TextView(this).apply {
             text = label
             textSize = 15f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
+            setPadding(dp(10), dp(18), dp(10), dp(18))
             background = GradientDrawable().apply {
-                cornerRadius = dp(14).toFloat()
+                cornerRadius = dp(16).toFloat()
                 setColor(color)
             }
-            setPadding(dp(8), dp(18), dp(8), dp(18))
-            setOnClickListener { onTap() }
+            setOnClickListener { stopAndFinish() }
         }
     }
 
-    private fun weighted(): LinearLayout.LayoutParams =
-        LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+    private fun loadLogo(): android.graphics.Bitmap? {
+        return try {
+            BitmapFactory.decodeStream(
+                applicationContext.assets.open("flutter_assets/assets/logo.png")
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
 
-    private fun space(h: Int): View = SpaceWrapper(this, dp(h))
+    private fun startPulse(view: View) {
+        pulse = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.045f).apply {
+            duration = 1100
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun startClock() {
+        clockHandler.removeCallbacksAndMessages(null)
+        val fmt = SimpleDateFormat("EEEE, d MMMM yyyy . HH:mm:ss", Locale("in", "ID"))
+        val tick = object : Runnable {
+            override fun run() {
+                clockView?.text = fmt.format(Date())
+                if (running) clockHandler.postDelayed(this, 1000)
+            }
+        }
+        clockHandler.post(tick)
+    }
+
+    private fun space(h: Int): View = View(this).apply {
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(h)
+        )
+    }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
@@ -229,16 +380,7 @@ class AlarmFullScreenActivity : Activity() {
 
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        // Back tidak menutup. Pengguna harus berhentikan alarm lewat tombol
-        // atau geser ke atas supaya alarm tidak nyala terus tanpa kendali.
-    }
-}
-
-private class SpaceWrapper(ctx: Context, private val height: Int) : View(ctx) {
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        setMeasuredDimension(
-            View.MeasureSpec.getSize(widthMeasureSpec),
-            height
-        )
+        // Back tidak menutup supaya alarm tidak nyala tanpa kendali.
+        // Pengguna harus menekan tombol atau menggeser ke atas.
     }
 }

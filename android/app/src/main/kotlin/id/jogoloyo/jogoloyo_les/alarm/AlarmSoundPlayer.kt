@@ -6,6 +6,8 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -18,6 +20,10 @@ object AlarmSoundPlayer {
     private var player: MediaPlayer? = null
     private var enhancer: LoudnessEnhancer? = null
     private var prevVolume = -1
+    private var looping = false
+    private var loopToken = 0
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var loopStop: Runnable? = null
 
     // Level ke gain millibel: 125->194, 150->352, 175->486, 200->602.
     fun gainMb(level: Int): Int {
@@ -37,8 +43,9 @@ object AlarmSoundPlayer {
     }
 
     @Synchronized
-    fun play(ctx: Context, sound: String, level: Int, vibrate: Boolean) {
+    fun play(ctx: Context, sound: String, level: Int, vibrate: Boolean, loop: Boolean = false) {
         stop(ctx, restore = false)
+        looping = loop
         if (level > 100) {
             val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             try {
@@ -49,7 +56,10 @@ object AlarmSoundPlayer {
                 prevVolume = -1
             }
         }
-        if (vibrate) vibrate(ctx, strong = true)
+        // Getar unstoppable selama alarm berbunyi, bukan tiga kali lalu diam.
+        if (vibrate) {
+            if (loop) vibrateLoop(ctx, strong = true) else vibrate(ctx, strong = true)
+        }
         try {
             val fd = ctx.assets.openFd(assetPath(sound))
             val mp = MediaPlayer().apply {
@@ -62,9 +72,21 @@ object AlarmSoundPlayer {
                 setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
                 fd.close()
                 setOnCompletionListener {
-                    releaseAll(ctx)
-                    release()
-                    if (player === it) player = null
+                    if (looping) {
+                        // Ulangi terus sampai pengguna menghentikan alarm.
+                        try {
+                            seekTo(0)
+                            start()
+                        } catch (e: Exception) {
+                            releaseAll(ctx)
+                            release()
+                            if (player === it) player = null
+                        }
+                    } else {
+                        releaseAll(ctx)
+                        release()
+                        if (player === it) player = null
+                    }
                 }
                 prepare()
                 try {
@@ -84,6 +106,9 @@ object AlarmSoundPlayer {
 
     @Synchronized
     fun stop(ctx: Context, restore: Boolean = true) {
+        looping = false
+        loopStop?.let { mainHandler.removeCallbacks(it) }
+        loopStop = null
         try {
             player?.let {
                 if (it.isPlaying) it.stop()
@@ -177,16 +202,56 @@ object AlarmSoundPlayer {
                 v.vibrate(pattern, -1)
             }
         } catch (e: Exception) {
-            // Terakhir: coba sekali getar pendek tanpa waveform.
+        }
+    }
+
+    // Getar berulang tanpa jeda selama alarm berbunyi. Berhenti hanya lewat stop.
+    // Ada pengaman 3 menit supaya tidak getar selamanya bila proses menggantung.
+    fun vibrateLoop(ctx: Context, strong: Boolean) {
+        val v = vibratorOf(ctx) ?: return
+        val pattern = if (strong) {
+            longArrayOf(0, 1000, 300, 1000, 300, 1200)
+        } else {
+            longArrayOf(0, 400, 200, 400)
+        }
+        loopToken++
+        val token = loopToken
+        runRepeating(v, pattern)
+        loopStop?.let { mainHandler.removeCallbacks(it) }
+        val guard = Runnable {
+            if (token == loopToken) cancelVibrate(ctx)
+        }
+        loopStop = guard
+        mainHandler.postDelayed(guard, 180000)
+    }
+
+    // Tes getar: berulang selama durasi tertentu lalu berhenti sendiri.
+    fun vibrateTimed(ctx: Context, strong: Boolean, ms: Long) {
+        val v = vibratorOf(ctx) ?: return
+        val pattern = if (strong) {
+            longArrayOf(0, 900, 300, 900, 300, 1200)
+        } else {
+            longArrayOf(0, 400, 200, 400)
+        }
+        runRepeating(v, pattern)
+        loopStop?.let { mainHandler.removeCallbacks(it) }
+        val guard = Runnable { cancelVibrate(ctx) }
+        loopStop = guard
+        mainHandler.postDelayed(guard, ms)
+    }
+
+    // Ulangi pola tanpa henti. Pakai API pola uzun plus atribut alarm supaya
+    // tidak dibungkam mode sunyi. Berhenti hanya lewat cancel.
+    private fun runRepeating(v: Vibrator, pattern: LongArray) {
+        try {
+            @Suppress("DEPRECATION")
             try {
-                val one = VibrationEffect.createOneShot(if (strong) 1500 else 500, VibrationEffect.DEFAULT_AMPLITUDE)
-                try {
-                    v.vibrate(one, alarmAttrs())
-                } catch (e2: Exception) {
-                    v.vibrate(one)
-                }
-            } catch (e3: Exception) {
+                v.vibrate(pattern, 0, alarmAttrs())
+            } catch (e: Exception) {
+                @Suppress("DEPRECATION")
+                v.vibrate(pattern, 0)
             }
+        } catch (e: Exception) {
         }
     }
 

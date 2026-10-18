@@ -21,7 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         // Offset 10 menit hanya pengingat biasa tanpa bunyi.
         val urgent = off == 0
         if (urgent) {
-            AlarmSoundPlayer.play(ctx, sound, level, vibrate)
+            AlarmSoundPlayer.play(ctx, sound, level, vibrate, loop = true)
             NotificationHelper.show(ctx, key, off, title, room, urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
         } else {
             if (vibrate) AlarmSoundPlayer.vibrate(ctx, strong = false)

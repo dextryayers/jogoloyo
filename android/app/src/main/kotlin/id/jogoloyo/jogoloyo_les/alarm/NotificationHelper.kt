@@ -97,13 +97,13 @@ object NotificationHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             b.setFullScreenIntent(fsPi, true)
-            // Tanpa suara (MediaPlayer yang bunyi), tapi getar tetap jalan bila aktif.
-            if (vibrate) b.setVibrate(STRONG_PATTERN)
-        } else if (silent || !vibrate) {
-            // Pengingat H-10 tidak perlu bunyi. Getar ringan mengikuti kanal.
+            // Getar kontinu ditangani AlarmSoundPlayer.vibrateLoop agar tidak
+            // terputus pola. Notifikasi cukup diam, jangan getar lagi di sini.
+        } else if (vibrate) {
+            // Pengingat H-10 tidak perlu bunyi. Getar ringan satu kali.
             b.setVibrate(SOFT_PATTERN)
         } else {
-            b.setVibrate(SOFT_PATTERN)
+            b.setSilent(true)
         }
         val n = b.build()
         try {

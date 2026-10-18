@@ -85,7 +85,7 @@ class MainActivity : FlutterActivity() {
                     res.success(true)
                 }
                 "testVibrate" -> {
-                    AlarmSoundPlayer.vibrate(this, strong = true)
+                    AlarmSoundPlayer.vibrateTimed(this, strong = true, 6000)
                     res.success(true)
                 }
                 "requestNotifications" -> {
