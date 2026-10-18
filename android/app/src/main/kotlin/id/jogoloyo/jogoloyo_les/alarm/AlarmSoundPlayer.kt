@@ -8,6 +8,7 @@ import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -184,9 +185,15 @@ object AlarmSoundPlayer {
             .build()
     }
 
+    // Versi baru untuk Android 13 ke atas: getar ditandai sebagai alarm
+    // supaya tidak dibatalkan sistem dan tetap jalan di mode jangan ganggu.
+    private fun alarmVibAttrs(): VibrationAttributes {
+        return VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM)
+    }
+
     // Getar tunggal untuk pengingat biasa. Tidak berulang.
     fun vibrate(ctx: Context, strong: Boolean) {
-        fireOnce(ctx, strong)
+        fireOnce(ctx, if (strong) VIBRATE_MS else 900L)
     }
 
     // Matikan getar saja, bunyi tetap jalan. Dipakai tombol bisukan.
@@ -196,25 +203,32 @@ object AlarmSoundPlayer {
         cancelVibrate(ctx)
     }
 
-    // Getar berulang penuh selama alarm berbunyi.
-    // Beberapa ROM mengabaikan repeat pada vibrate lawas, jadi pakai Runnable
-    // yang menjadwal ulang dirinya sendiri tiap satu siklus.
-    // Getar 1500 ms lalu jeda 1500 ms, jadi rata 3 detik getar 3 detik jeda.
+    // Batas putaran getar. Setelah 150 kali, getar berhenti sendiri supaya
+    // HP tidak getar tanpa henti.
+    private const val MAX_ROUNDS = 150
+
+    // Durasi getar tiap putaran: 3 detik. Jeda antar putaran 1,5 detik.
+    private const val VIBRATE_MS = 3000L
+    private const val PAUSE_MS = 1500L
+
+    // Satu panggilan getar ke sistem berisi beberapa putaran sekaligus.
+    // ROM agresif memotong getar yang terlalu panjang dan membatasi panggilan
+    // vibrate() beruntun, jadi dipakai blok 10 putaran (45 detik), lalu blok
+    // berikutnya dikirim tepat saat blok sebelumnya selesai.
+    private const val CHUNK_ROUNDS = 10
+
+    // Getar berulang penuh selama alarm berbunyi: 150 putaran, tiap putaran
+    // getar 3 detik lalu jeda 1,5 detik. Habis itu getar berhenti sendiri.
     fun vibrateLoop(ctx: Context, strong: Boolean) {
         loopToken++
         val token = loopToken
         cancelVibrateRunnable()
-        val cycle = if (strong) 1500L else 900L
-        val runnable = object : Runnable {
-            override fun run() {
-                if (token != loopToken) return
-                fireOnce(ctx, strong)
-                mainHandler.postDelayed(this, cycle)
-            }
+        if (!strong) {
+            startLongWave(ctx, 4, token)
+            return
         }
-        vibrateRunnable = runnable
-        mainHandler.post(runnable)
-        scheduleGuard(ctx, 300000, token)
+        startWaveChunk(ctx, token, 0)
+        scheduleGuard(ctx, (VIBRATE_MS + PAUSE_MS) * MAX_ROUNDS + 10000, token)
     }
 
     // Tes getar: berulang selama durasi tertentu lalu berhenti sendiri.
@@ -222,37 +236,90 @@ object AlarmSoundPlayer {
         loopToken++
         val token = loopToken
         cancelVibrateRunnable()
-        val cycle = if (strong) 1500L else 900L
-        val runnable = object : Runnable {
-            override fun run() {
-                if (token != loopToken) return
-                fireOnce(ctx, strong)
-                mainHandler.postDelayed(this, cycle)
-            }
-        }
-        vibrateRunnable = runnable
-        mainHandler.post(runnable)
-        scheduleGuard(ctx, ms, token)
+        val perRound = VIBRATE_MS + PAUSE_MS
+        var rounds = ((ms - PAUSE_MS) / perRound).toInt()
+        if (rounds < 1) rounds = 1
+        if (rounds > MAX_ROUNDS) rounds = MAX_ROUNDS
+        startLongWave(ctx, rounds, token)
     }
 
-    // Satu kali getar. Getar 1500 ms lalu jeda 1500 ms. Selalu pakai
-    // AudioAttributes USAGE_ALARM supaya tidak dibungkam mode sunyi.
-    private fun fireOnce(ctx: Context, strong: Boolean) {
+    // Kirim blok getar berikutnya sampai total putaran MAX_ROUNDS tercapai.
+    private fun startWaveChunk(ctx: Context, token: Int, done: Int) {
+        val remaining = MAX_ROUNDS - done
+        if (remaining <= 0) {
+            cancelVibrateRunnable()
+            return
+        }
+        val rounds = if (remaining < CHUNK_ROUNDS) remaining else CHUNK_ROUNDS
+        startLongWave(ctx, rounds, token, keepAlive = true)
+        val next = Runnable {
+            if (token != loopToken) return@Runnable
+            startWaveChunk(ctx, token, done + rounds)
+        }
+        vibrateRunnable = next
+        mainHandler.postDelayed(next, (VIBRATE_MS + PAUSE_MS) * rounds)
+    }
+
+    // Bangun satu waveform berisi N putaran getar 3 detik dan jeda 1,5 detik.
+    // Tanpa repeat, jadi sistem memutar tepat N putaran lalu berhenti sendiri.
+    private fun startLongWave(ctx: Context, rounds: Int, token: Int, keepAlive: Boolean = false) {
         val v = vibratorOf(ctx) ?: return
-        val ms = (if (strong) 1500L else 900L)
+        val timings = LongArray(rounds * 2)
+        var i = 0
+        while (i < timings.size) {
+            timings[i] = VIBRATE_MS
+            timings[i + 1] = PAUSE_MS
+            i += 2
+        }
+        if (Build.VERSION.SDK_INT >= 26) {
+            val effect = VibrationEffect.createWaveform(timings, -1)
+            vibrateEffect(ctx, v, effect)
+        } else {
+            try {
+                @Suppress("DEPRECATION")
+                v.vibrate(timings, -1)
+            } catch (e: Exception) {
+            }
+        }
+        // Pengaman: matikan getar otomatis sesudah semua ronde selesai,
+        // supaya tidak ada motor getar yang menggantung di belakang.
+        if (!keepAlive) {
+            scheduleGuard(ctx, (VIBRATE_MS + PAUSE_MS) * rounds + 5000, token)
+        }
+    }
+
+    // Kirim getar dengan urutan atribut paling kuat: USAGE_ALARM lewat
+    // VibrationAttributes (Android 13+), lalu AudioAttributes, terakhir polos.
+    private fun vibrateEffect(ctx: Context, v: Vibrator, effect: VibrationEffect) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            try {
+                v.vibrate(effect, alarmVibAttrs())
+                return
+            } catch (e: Exception) {
+            }
+        }
         try {
-            if (Build.VERSION.SDK_INT >= 26) {
-                val effect = VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)
-                try {
-                    v.vibrate(effect, alarmAttrs())
-                } catch (e: Exception) {
-                    v.vibrate(effect)
-                }
-            } else {
+            v.vibrate(effect, alarmAttrs())
+            return
+        } catch (e: Exception) {
+        }
+        try {
+            v.vibrate(effect)
+        } catch (e: Exception) {
+        }
+    }
+
+    // Getar sekali selama durasi yang diminta.
+    private fun fireOnce(ctx: Context, ms: Long) {
+        val v = vibratorOf(ctx) ?: return
+        if (Build.VERSION.SDK_INT >= 26) {
+            vibrateEffect(ctx, v, VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            try {
                 @Suppress("DEPRECATION")
                 v.vibrate(ms)
+            } catch (e: Exception) {
             }
-        } catch (e: Exception) {
         }
     }
 

@@ -85,7 +85,8 @@ class MainActivity : FlutterActivity() {
                     res.success(true)
                 }
                 "testVibrate" -> {
-                    AlarmSoundPlayer.vibrateTimed(this, strong = true, 6000)
+                    // Tiga putaran penuh supaya ritme getar alarm bisa dicek.
+                    AlarmSoundPlayer.vibrateTimed(this, strong = true, 15000)
                     res.success(true)
                 }
                 "requestNotifications" -> {
