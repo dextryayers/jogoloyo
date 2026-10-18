@@ -138,26 +138,35 @@ class _State extends ConsumerState<SettingTab> {
                       setState(() => _vibrate = v);
                     },
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => AlarmService().test('urgent',
-                              sound: _sound, level: _level, vibrate: _vibrate),
-                          icon: const Icon(Icons.play_arrow),
-                          label: const Text('Play'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => AlarmService().stopSound(),
-                          icon: const Icon(Icons.stop),
-                          label: const Text('Stop'),
-                        ),
-                      ),
-                    ],
-                  ),
+                   Row(
+                     children: [
+                       Expanded(
+                         child: ElevatedButton.icon(
+                           onPressed: () => AlarmService().test('urgent',
+                               sound: _sound, level: _level, vibrate: _vibrate),
+                           icon: const Icon(Icons.play_arrow),
+                           label: const Text('Play'),
+                         ),
+                       ),
+                       const SizedBox(width: 8),
+                       Expanded(
+                         child: OutlinedButton.icon(
+                           onPressed: () => AlarmService().test('info',
+                               sound: _sound, level: _level, vibrate: true),
+                           icon: const Icon(Icons.vibration),
+                           label: const Text('Getar'),
+                         ),
+                       ),
+                       const SizedBox(width: 8),
+                       Expanded(
+                         child: OutlinedButton.icon(
+                           onPressed: () => AlarmService().stopSound(),
+                           icon: const Icon(Icons.stop),
+                           label: const Text('Stop'),
+                         ),
+                       ),
+                     ],
+                   ),
                   const Text('Play bunyikan suara default. Stop hentikan seketika.',
                       style: TextStyle(fontSize: 12, color: JogloColors.muted)),
                 ],

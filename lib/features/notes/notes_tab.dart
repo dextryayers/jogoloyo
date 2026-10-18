@@ -31,7 +31,10 @@ class _State extends ConsumerState<NotesTab> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => context.push('/note/new'),
+           onPressed: () async {
+             await context.push('/note/new');
+             ref.invalidate(notesProvider);
+           },
           icon: const Icon(Icons.edit_outlined),
           label: const Text('Tulis'),
         ),
@@ -183,7 +186,10 @@ class _State extends ConsumerState<NotesTab> {
                               words: words,
                               pinned: n.pinned,
                               strip: _strips[i % _strips.length],
-                              onTap: () => context.push('/note/${n.id}'),
+                               onTap: () async {
+                                 await context.push('/note/${n.id}');
+                                 ref.invalidate(notesProvider);
+                               },
                               onPin: () async {
                                 await ref.read(simpleStoreProvider).togglePin(n.id);
                                 ref.invalidate(notesProvider);
