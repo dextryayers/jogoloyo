@@ -72,15 +72,19 @@ class MainActivity : FlutterActivity() {
                     val vibrate = call.argument<Boolean>("vibrate") ?: true
                     if (kind == "urgent") {
                         AlarmSoundPlayer.play(this, sound, level, vibrate)
-                        NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = false, vibrate = vibrate)
+                        NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
                     } else {
                         if (vibrate) AlarmSoundPlayer.vibrate(this, strong = false)
-                        NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false, vibrate = vibrate)
+                        NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false, vibrate = vibrate, sound = sound, level = level)
                     }
                     res.success(true)
                 }
                 "stopAlarmSound" -> {
                     AlarmSoundPlayer.stop(this)
+                    res.success(true)
+                }
+                "testVibrate" -> {
+                    AlarmSoundPlayer.vibrate(this, strong = true)
                     res.success(true)
                 }
                 "requestNotifications" -> {

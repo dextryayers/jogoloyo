@@ -136,23 +136,29 @@ object AlarmSoundPlayer {
     fun vibrate(ctx: Context, strong: Boolean) {
         try {
             val pattern = if (strong) {
-                longArrayOf(0, 1200, 400, 1200, 400, 1500)
+                longArrayOf(0, 1000, 300, 1000, 300, 1200)
             } else {
                 longArrayOf(0, 400, 200, 400)
             }
-            // Amplitudo 255 = paling kuat. Default sistem sering terlalu lemah.
-            val amps = IntArray(pattern.size) { i -> if (i % 2 == 1) 255 else 0 }
             if (Build.VERSION.SDK_INT >= 31) {
                 val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 val v = vm.defaultVibrator
                 if (!v.hasVibrator()) return
-                v.vibrate(VibrationEffect.createWaveform(pattern, amps, -1))
+                try {
+                    v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                } catch (e: Exception) {
+                    v.vibrate(VibrationEffect.createOneShot(if (strong) 1500 else 500, VibrationEffect.DEFAULT_AMPLITUDE))
+                }
             } else {
                 @Suppress("DEPRECATION")
                 val v = ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                 if (!v.hasVibrator()) return
                 if (Build.VERSION.SDK_INT >= 26) {
-                    v.vibrate(VibrationEffect.createWaveform(pattern, amps, -1))
+                    try {
+                        v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                    } catch (e: Exception) {
+                        v.vibrate(VibrationEffect.createOneShot(if (strong) 1500 else 500, VibrationEffect.DEFAULT_AMPLITUDE))
+                    }
                 } else {
                     @Suppress("DEPRECATION")
                     v.vibrate(pattern, -1)

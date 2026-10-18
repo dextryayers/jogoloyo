@@ -1,9 +1,12 @@
 package id.jogoloyo.jogoloyo_les.alarm
 
 import android.app.Notification
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.graphics.Color
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -28,7 +31,18 @@ object NotificationHelper {
     // urgent: suara dari MediaPlayer, notifikasi tanpa suara tapi tetap getar
     // sebagai jalur cadangan. silent=true mematikan getar notif juga, jadi
     // tidak dipakai lagi. vibrate=false mematikan semua getar.
-    fun show(ctx: Context, key: String, offsetMin: Int, title: String, room: String, urgent: Boolean, silent: Boolean = false, vibrate: Boolean = true) {
+    fun show(
+        ctx: Context,
+        key: String,
+        offsetMin: Int,
+        title: String,
+        room: String,
+        urgent: Boolean,
+        silent: Boolean = false,
+        vibrate: Boolean = true,
+        sound: String = "suara1",
+        level: Int = 200,
+    ) {
         ensure(ctx)
         val text = when (offsetMin) {
             60 -> "60 menit lagi: $title di $room."
@@ -41,9 +55,29 @@ object NotificationHelper {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
             .setContentText(text)
-            .setPriority(if (urgent) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setColor(Color.parseColor("#1B5E20"))
+            .setPriority(if (urgent) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(if (urgent) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_REMINDER)
+            .setOngoing(urgent)
+            .setAutoCancel(!urgent)
         if (urgent) {
+            // Layar penuh seperti panggilan masuk. Usap ke atas untuk hentikan.
+            val fsIntent = Intent(ctx, AlarmFullScreenActivity::class.java).apply {
+                putExtra("sessionKey", key)
+                putExtra("offsetMin", offsetMin)
+                putExtra("title", title)
+                putExtra("room", room)
+                putExtra("sound", sound)
+                putExtra("level", level)
+                putExtra("vibrate", vibrate)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val fsPi = PendingIntent.getActivity(
+                ctx, key.hashCode() + 777, fsIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            b.setFullScreenIntent(fsPi, true)
             // Tanpa suara (MediaPlayer yang bunyi), tapi getar tetap jalan bila aktif.
             if (vibrate) b.setVibrate(strongPattern)
         } else if (silent) {

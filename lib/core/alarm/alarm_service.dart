@@ -64,6 +64,14 @@ class AlarmService {
     }
   }
 
+  Future<void> testVibrate() async {
+    try {
+      await _ch.invokeMethod('testVibrate');
+    } on PlatformException {
+      return;
+    }
+  }
+
   // Cek nyata ke sistem apakah alarm sudah terpasang. Bukan tebakan.
   Future<bool> isArmed({
     required String sessionId,

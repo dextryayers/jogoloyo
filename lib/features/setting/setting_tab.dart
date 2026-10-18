@@ -151,8 +151,7 @@ class _State extends ConsumerState<SettingTab> {
                        const SizedBox(width: 8),
                        Expanded(
                          child: OutlinedButton.icon(
-                           onPressed: () => AlarmService().test('info',
-                               sound: _sound, level: _level, vibrate: true),
+                           onPressed: () => AlarmService().testVibrate(),
                            icon: const Icon(Icons.vibration),
                            label: const Text('Getar'),
                          ),
