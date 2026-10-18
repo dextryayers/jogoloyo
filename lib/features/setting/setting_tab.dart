@@ -143,7 +143,7 @@ class _State extends ConsumerState<SettingTab> {
                        Expanded(
                          child: ElevatedButton.icon(
                            onPressed: () => AlarmService().test('urgent',
-                               sound: _sound, level: _level, vibrate: _vibrate),
+                               sound: _sound, level: _level, vibrate: _vibrate, loop: true),
                            icon: const Icon(Icons.play_arrow),
                            label: const Text('Play'),
                          ),
@@ -166,7 +166,7 @@ class _State extends ConsumerState<SettingTab> {
                        ),
                      ],
                    ),
-                  const Text('Play bunyikan suara default. Getar hanya getar tanpa bunyi. Stop hentikan seketika.',
+                  const Text('Play putar suara berulang tanpa henti seperti alarm asli. Getar hanya getar tanpa bunyi. Stop hentikan seketika.',
                       style: TextStyle(fontSize: 12, color: JogloColors.muted)),
                 ],
               ),

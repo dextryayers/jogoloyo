@@ -46,10 +46,22 @@ class AlarmService {
     }
   }
 
-  Future<bool> test(String kind, {String sound = 'suara1', int level = 200, bool vibrate = true}) async {
+  // loop true: bunyi diputar berulang tanpa henti sampai stopSound dipanggil.
+  Future<bool> test(
+    String kind, {
+    String sound = 'suara1',
+    int level = 200,
+    bool vibrate = true,
+    bool loop = false,
+  }) async {
     try {
-      await _ch.invokeMethod(
-          'testAlarm', {'kind': kind, 'sound': sound, 'level': level, 'vibrate': vibrate});
+      await _ch.invokeMethod('testAlarm', {
+        'kind': kind,
+        'sound': sound,
+        'level': level,
+        'vibrate': vibrate,
+        'loop': loop,
+      });
       return true;
     } on PlatformException {
       return false;

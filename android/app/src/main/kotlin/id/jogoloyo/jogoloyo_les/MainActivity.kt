@@ -70,8 +70,10 @@ class MainActivity : FlutterActivity() {
                     val level = (call.argument<Int>("level")
                         ?: if (call.argument<Boolean>("loud") != false) 200 else 100)
                     val vibrate = call.argument<Boolean>("vibrate") ?: true
+                    // loop true: bunyi berulang tanpa henti sampai stopAlarmSound.
+                    val loop = call.argument<Boolean>("loop") ?: false
                     if (kind == "urgent") {
-                        AlarmSoundPlayer.play(this, sound, level, vibrate)
+                        AlarmSoundPlayer.play(this, sound, level, vibrate, loop)
                         NotificationHelper.show(this, "test", 0, "Tes Alarm", "Ruang A", urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
                     } else {
                         if (vibrate) AlarmSoundPlayer.vibrate(this, strong = false)

@@ -16,16 +16,24 @@ import android.os.VibratorManager
 // Pemutar suara alarm: bunyi otomatis dari aset lokal plus getar opsional.
 // Level 100 persen = pakai volume HP. 125 sampai 200 persen = paksa volume
 // maksimal plus penguat gain agar jauh lebih keras. Volume dikembalikan selesai.
-// Suara: suara1 sampai suara6 dari assets/music. Tanpa server, tanpa unduhan.
+// Suara: suara1 sampai suara6 dari assets/music, semuanya MP3. Saat alarm
+// berbunyi, suara diputar berulang tanpa henti sampai pengguna menekan STOP.
 object AlarmSoundPlayer {
     private var player: MediaPlayer? = null
     private var enhancer: LoudnessEnhancer? = null
     private var prevVolume = -1
     private var looping = false
+    private var muted = false
     private var loopToken = 0
     private val mainHandler = Handler(Looper.getMainLooper())
     private var loopStop: Runnable? = null
     private var vibrateRunnable: Runnable? = null
+
+    // Setelan alarm yang sedang jalan, dipakai saat membunyikan ulang
+    // sesudah tombol bisukan dilepas.
+    private var curSound = "suara1"
+    private var curLevel = 200
+    private var curVibrate = true
 
     // Level ke gain millibel: 125->194, 150->352, 175->486, 200->602.
     fun gainMb(level: Int): Int {
@@ -34,13 +42,13 @@ object AlarmSoundPlayer {
         return (db * 100).toInt().coerceIn(0, 1000)
     }
 
+    // Semua suara alarm ada di assets/music dan berformat MP3.
     fun assetPath(sound: String): String = when (sound) {
-        "suara1" -> "flutter_assets/assets/music/suara1.mp3"
         "suara2" -> "flutter_assets/assets/music/suara2.mp3"
         "suara3" -> "flutter_assets/assets/music/suara3.mp3"
         "suara4" -> "flutter_assets/assets/music/suara4.mp3"
-        "suara5" -> "flutter_assets/assets/music/suara5.wav"
-        "suara6" -> "flutter_assets/assets/music/suara6.wav"
+        "suara5" -> "flutter_assets/assets/music/suara5.mp3"
+        "suara6" -> "flutter_assets/assets/music/suara6.mp3"
         else -> "flutter_assets/assets/music/suara1.mp3"
     }
 
@@ -48,6 +56,10 @@ object AlarmSoundPlayer {
     fun play(ctx: Context, sound: String, level: Int, vibrate: Boolean, loop: Boolean = false) {
         stop(ctx, restore = false)
         looping = loop
+        muted = false
+        curSound = sound
+        curLevel = level
+        curVibrate = vibrate
         if (level > 100) {
             val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             try {
@@ -58,7 +70,7 @@ object AlarmSoundPlayer {
                 prevVolume = -1
             }
         }
-        // Getar unstoppable selama alarm berbunyi, bukan tiga kali lalu diam.
+        // Getar kuat dan panjang selama alarm berbunyi, bukan tiga kali lalu diam.
         if (vibrate) {
             if (loop) vibrateLoop(ctx, strong = true) else vibrate(ctx, strong = true)
         }
@@ -73,9 +85,13 @@ object AlarmSoundPlayer {
                 )
                 setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
                 fd.close()
+                // Loop bawaan pemutar: tersambung mulus tanpa jeda henti,
+                // jadi suara pendek tetap terasa mengalun terus menerus.
+                isLooping = loop
                 setOnCompletionListener {
                     if (looping) {
-                        // Ulangi terus sampai pengguna menghentikan alarm.
+                        // Jaring pengaman untuk HP yang mengabaikan isLooping:
+                        // putar lagi dari awal, tanpa batas, sampai dihentikan.
                         try {
                             seekTo(0)
                             start()
@@ -106,9 +122,36 @@ object AlarmSoundPlayer {
         }
     }
 
+    // Bisukan sementara: bunyi dan getar berhenti, alarm belum dihentikan.
+    @Synchronized
+    fun mute(ctx: Context) {
+        if (muted) return
+        muted = true
+        loopToken++
+        cancelVibrateRunnable()
+        cancelVibrate(ctx)
+        try {
+            player?.let { if (it.isPlaying) it.pause() }
+        } catch (e: Exception) {
+        }
+    }
+
+    // Lepas bisukan: bunyi dan getar jalan lagi sesuai setelan awal.
+    @Synchronized
+    fun unmute(ctx: Context) {
+        if (!muted) return
+        muted = false
+        try {
+            player?.let { if (!it.isPlaying) it.start() }
+        } catch (e: Exception) {
+        }
+        if (curVibrate && looping) vibrateLoop(ctx, strong = true)
+    }
+
     @Synchronized
     fun stop(ctx: Context, restore: Boolean = true) {
         looping = false
+        muted = false
         cancelVibrateRunnable()
         loopStop?.let { mainHandler.removeCallbacks(it) }
         loopStop = null
@@ -194,13 +237,6 @@ object AlarmSoundPlayer {
     // Getar tunggal untuk pengingat biasa. Tidak berulang.
     fun vibrate(ctx: Context, strong: Boolean) {
         fireOnce(ctx, if (strong) VIBRATE_MS else 900L)
-    }
-
-    // Matikan getar saja, bunyi tetap jalan. Dipakai tombol bisukan.
-    fun cancelOnly(ctx: Context) {
-        loopToken++
-        cancelVibrateRunnable()
-        cancelVibrate(ctx)
     }
 
     // Batas putaran getar. Setelah 150 kali, getar berhenti sendiri supaya

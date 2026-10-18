@@ -271,7 +271,7 @@ class AlarmFullScreenActivity : Activity() {
                 setStroke(dp(1), Color.parseColor("#2E7D32"))
             }
             setPadding(dp(12), dp(12), dp(12), dp(12))
-            contentDescription = "Bisukan getar"
+            contentDescription = "Bisukan bunyi dan getar"
             setOnClickListener { toggleMute() }
             addView(
                 icon,
@@ -288,11 +288,11 @@ class AlarmFullScreenActivity : Activity() {
     private fun toggleMute() {
         muted = !muted
         if (muted) {
-            AlarmSoundPlayer.cancelOnly(this)
-            if (timerView != null) setMutedHint("Getar dan bunyi dibisukan sementara.")
+            AlarmSoundPlayer.mute(this)
+            if (timerView != null) setMutedHint("Bunyi dan getar dibisukan sementara.")
         } else {
-            AlarmSoundPlayer.vibrateLoop(this, strong = true)
-            if (timerView != null) setMutedHint("Getar dan bunyi berjalan lagi.")
+            AlarmSoundPlayer.unmute(this)
+            if (timerView != null) setMutedHint("Bunyi dan getar berjalan lagi.")
         }
         renderMuteState()
     }

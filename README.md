@@ -287,16 +287,23 @@ Teks asli dari `NotificationHelper`. V.02 hanya menjadwalkan offset 0.
 
 ## 11. Suara Bawaan
 
-| Nama | File | Ukuran | Isi |
-|---|---|---|---|
-| Suara 1 | suara1.mp3 | 1,8 MB | Nada alarm Thailand |
-| Suara 2 | suara2.mp3 | 0,9 MB | Dreamscape lembut |
-| Suara 3 | suara3.mp3 | 2,0 MB | Mellow klasik |
-| Suara 4 | suara4.mp3 | 0,9 MB | Oversimplified ceria |
-| Suara 5 | suara5.wav | 1,5 MB | Buzzer digital |
-| Suara 6 | suara6.wav | 1,6 MB | Morning clock |
+| Nama | File | Ukuran |
+|---|---|---|
+| Suara 1 | suara1.mp3 | 0,70 MB |
+| Suara 2 | suara2.mp3 | 1,53 MB |
+| Suara 3 | suara3.mp3 | 0,03 MB |
+| Suara 4 | suara4.mp3 | 0,30 MB |
+| Suara 5 | suara5.mp3 | 0,09 MB |
+| Suara 6 | suara6.mp3 | 0,01 MB |
 
-Total sekitar 8,7 MB. File asli ada di folder `music`, salinan rapi di `assets/music`.
+Total sekitar 2,7 MB, semuanya MP3. File asli ada di folder `public/music`,
+salinan yang dipakai build ada di `assets/music`. Kalau mau mengganti suara,
+cukup timpa file di `assets/music` dengan nama yang sama.
+
+Saat alarm berbunyi, suara diputar berulang tanpa henti sampai pengguna menekan
+tombol STOP di layar alarm. Tidak ada batas jumlah putaran untuk bunyi, jadi
+suara pendek pun terasa mengalun terus. Tombol bisukan hanya menjeda sementara:
+bunyi dan getar berhenti, lalu jalan lagi saat bisukan dilepas.
 
 ---
 
