@@ -24,6 +24,7 @@ object AlarmSoundPlayer {
     private var loopToken = 0
     private val mainHandler = Handler(Looper.getMainLooper())
     private var loopStop: Runnable? = null
+    private var vibrateRunnable: Runnable? = null
 
     // Level ke gain millibel: 125->194, 150->352, 175->486, 200->602.
     fun gainMb(level: Int): Int {
@@ -107,6 +108,7 @@ object AlarmSoundPlayer {
     @Synchronized
     fun stop(ctx: Context, restore: Boolean = true) {
         looping = false
+        cancelVibrateRunnable()
         loopStop?.let { mainHandler.removeCallbacks(it) }
         loopStop = null
         try {
@@ -182,16 +184,65 @@ object AlarmSoundPlayer {
             .build()
     }
 
+    // Getar tunggal untuk pengingat biasa. Tidak berulang.
     fun vibrate(ctx: Context, strong: Boolean) {
-        val v = vibratorOf(ctx) ?: return
-        val pattern = if (strong) {
-            longArrayOf(0, 1000, 300, 1000, 300, 1200)
-        } else {
-            longArrayOf(0, 400, 200, 400)
+        fireOnce(ctx, strong)
+    }
+
+    // Matikan getar saja, bunyi tetap jalan. Dipakai tombol bisukan.
+    fun cancelOnly(ctx: Context) {
+        loopToken++
+        cancelVibrateRunnable()
+        cancelVibrate(ctx)
+    }
+
+    // Getar berulang penuh selama alarm berbunyi.
+    // Beberapa ROM mengabaikan repeat pada vibrate lawas, jadi pakai Runnable
+    // yang menjadwal ulang dirinya sendiri tiap satu siklus.
+    // Getar 1500 ms lalu jeda 1500 ms, jadi rata 3 detik getar 3 detik jeda.
+    fun vibrateLoop(ctx: Context, strong: Boolean) {
+        loopToken++
+        val token = loopToken
+        cancelVibrateRunnable()
+        val cycle = if (strong) 1500L else 900L
+        val runnable = object : Runnable {
+            override fun run() {
+                if (token != loopToken) return
+                fireOnce(ctx, strong)
+                mainHandler.postDelayed(this, cycle)
+            }
         }
+        vibrateRunnable = runnable
+        mainHandler.post(runnable)
+        scheduleGuard(ctx, 300000, token)
+    }
+
+    // Tes getar: berulang selama durasi tertentu lalu berhenti sendiri.
+    fun vibrateTimed(ctx: Context, strong: Boolean, ms: Long) {
+        loopToken++
+        val token = loopToken
+        cancelVibrateRunnable()
+        val cycle = if (strong) 1500L else 900L
+        val runnable = object : Runnable {
+            override fun run() {
+                if (token != loopToken) return
+                fireOnce(ctx, strong)
+                mainHandler.postDelayed(this, cycle)
+            }
+        }
+        vibrateRunnable = runnable
+        mainHandler.post(runnable)
+        scheduleGuard(ctx, ms, token)
+    }
+
+    // Satu kali getar. Getar 1500 ms lalu jeda 1500 ms. Selalu pakai
+    // AudioAttributes USAGE_ALARM supaya tidak dibungkam mode sunyi.
+    private fun fireOnce(ctx: Context, strong: Boolean) {
+        val v = vibratorOf(ctx) ?: return
+        val ms = (if (strong) 1500L else 900L)
         try {
             if (Build.VERSION.SDK_INT >= 26) {
-                val effect = VibrationEffect.createWaveform(pattern, -1)
+                val effect = VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)
                 try {
                     v.vibrate(effect, alarmAttrs())
                 } catch (e: Exception) {
@@ -199,60 +250,28 @@ object AlarmSoundPlayer {
                 }
             } else {
                 @Suppress("DEPRECATION")
-                v.vibrate(pattern, -1)
+                v.vibrate(ms)
             }
         } catch (e: Exception) {
         }
     }
 
-    // Getar berulang tanpa jeda selama alarm berbunyi. Berhenti hanya lewat stop.
-    // Ada pengaman 3 menit supaya tidak getar selamanya bila proses menggantung.
-    fun vibrateLoop(ctx: Context, strong: Boolean) {
-        val v = vibratorOf(ctx) ?: return
-        val pattern = if (strong) {
-            longArrayOf(0, 1000, 300, 1000, 300, 1200)
-        } else {
-            longArrayOf(0, 400, 200, 400)
-        }
-        loopToken++
-        val token = loopToken
-        runRepeating(v, pattern)
+    // Pengaman: getar tidak boleh jalan lebih lama dari durasi yang diminta.
+    private fun scheduleGuard(ctx: Context, ms: Long, token: Int) {
         loopStop?.let { mainHandler.removeCallbacks(it) }
         val guard = Runnable {
-            if (token == loopToken) cancelVibrate(ctx)
+            if (token == loopToken) {
+                cancelVibrateRunnable()
+                cancelVibrate(ctx)
+            }
         }
-        loopStop = guard
-        mainHandler.postDelayed(guard, 180000)
-    }
-
-    // Tes getar: berulang selama durasi tertentu lalu berhenti sendiri.
-    fun vibrateTimed(ctx: Context, strong: Boolean, ms: Long) {
-        val v = vibratorOf(ctx) ?: return
-        val pattern = if (strong) {
-            longArrayOf(0, 900, 300, 900, 300, 1200)
-        } else {
-            longArrayOf(0, 400, 200, 400)
-        }
-        runRepeating(v, pattern)
-        loopStop?.let { mainHandler.removeCallbacks(it) }
-        val guard = Runnable { cancelVibrate(ctx) }
         loopStop = guard
         mainHandler.postDelayed(guard, ms)
     }
 
-    // Ulangi pola tanpa henti. Pakai API pola uzun plus atribut alarm supaya
-    // tidak dibungkam mode sunyi. Berhenti hanya lewat cancel.
-    private fun runRepeating(v: Vibrator, pattern: LongArray) {
-        try {
-            @Suppress("DEPRECATION")
-            try {
-                v.vibrate(pattern, 0, alarmAttrs())
-            } catch (e: Exception) {
-                @Suppress("DEPRECATION")
-                v.vibrate(pattern, 0)
-            }
-        } catch (e: Exception) {
-        }
+    private fun cancelVibrateRunnable() {
+        vibrateRunnable?.let { mainHandler.removeCallbacks(it) }
+        vibrateRunnable = null
     }
 
     private fun cancelVibrate(ctx: Context) {
