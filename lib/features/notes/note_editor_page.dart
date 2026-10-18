@@ -200,8 +200,9 @@ class _State extends ConsumerState<NoteEditorPage> {
                      _saved = true;
                      _updated = DateTime.now().toUtc();
                      ref.invalidate(notesProvider);
-                    if (!context.mounted) return;
-                    context.pop();
+                     await ref.read(notesProvider.future);
+                     if (!context.mounted) return;
+                     context.go('/notes');
                     ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Catatan tersimpan di HP ini.')));
                   },

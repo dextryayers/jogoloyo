@@ -121,62 +121,78 @@ object AlarmSoundPlayer {
 
     fun hasVibrator(ctx: Context): Boolean {
         return try {
-            if (Build.VERSION.SDK_INT >= 31) {
-                val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vm.defaultVibrator.hasVibrator()
-            } else {
-                @Suppress("DEPRECATION")
-                (ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator).hasVibrator()
-            }
+            val v = vibratorOf(ctx)
+            v != null && v.hasVibrator()
         } catch (e: Exception) {
             false
         }
     }
 
-    fun vibrate(ctx: Context, strong: Boolean) {
-        try {
-            val pattern = if (strong) {
-                longArrayOf(0, 1000, 300, 1000, 300, 1200)
-            } else {
-                longArrayOf(0, 400, 200, 400)
-            }
+    // Ambil vibrator dengan fallback. Beberapa OEM tidak menyediakan
+    // VibratorManager padahal motor getar ada, jadi coba service lama.
+    private fun vibratorOf(ctx: Context): Vibrator? {
+        return try {
             if (Build.VERSION.SDK_INT >= 31) {
-                val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                val v = vm.defaultVibrator
-                if (!v.hasVibrator()) return
                 try {
-                    v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                    val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vm.defaultVibrator
                 } catch (e: Exception) {
-                    v.vibrate(VibrationEffect.createOneShot(if (strong) 1500 else 500, VibrationEffect.DEFAULT_AMPLITUDE))
+                    @Suppress("DEPRECATION")
+                    ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                 }
             } else {
                 @Suppress("DEPRECATION")
-                val v = ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                if (!v.hasVibrator()) return
-                if (Build.VERSION.SDK_INT >= 26) {
-                    try {
-                        v.vibrate(VibrationEffect.createWaveform(pattern, -1))
-                    } catch (e: Exception) {
-                        v.vibrate(VibrationEffect.createOneShot(if (strong) 1500 else 500, VibrationEffect.DEFAULT_AMPLITUDE))
-                    }
-                } else {
-                    @Suppress("DEPRECATION")
-                    v.vibrate(pattern, -1)
-                }
+                ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
         } catch (e: Exception) {
+            null
+        }
+    }
+
+    // Attributes USAGE_ALARM supaya tidak dibungkam mode sunyi atau kanal bisu.
+    private fun alarmAttrs(): AudioAttributes {
+        return AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+    }
+
+    fun vibrate(ctx: Context, strong: Boolean) {
+        val v = vibratorOf(ctx) ?: return
+        val pattern = if (strong) {
+            longArrayOf(0, 1000, 300, 1000, 300, 1200)
+        } else {
+            longArrayOf(0, 400, 200, 400)
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= 26) {
+                val effect = VibrationEffect.createWaveform(pattern, -1)
+                try {
+                    v.vibrate(effect, alarmAttrs())
+                } catch (e: Exception) {
+                    v.vibrate(effect)
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                v.vibrate(pattern, -1)
+            }
+        } catch (e: Exception) {
+            // Terakhir: coba sekali getar pendek tanpa waveform.
+            try {
+                val one = VibrationEffect.createOneShot(if (strong) 1500 else 500, VibrationEffect.DEFAULT_AMPLITUDE)
+                try {
+                    v.vibrate(one, alarmAttrs())
+                } catch (e2: Exception) {
+                    v.vibrate(one)
+                }
+            } catch (e3: Exception) {
+            }
         }
     }
 
     private fun cancelVibrate(ctx: Context) {
         try {
-            if (Build.VERSION.SDK_INT >= 31) {
-                val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vm.defaultVibrator.cancel()
-            } else {
-                @Suppress("DEPRECATION")
-                (ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator).cancel()
-            }
+            vibratorOf(ctx)?.cancel()
         } catch (e: Exception) {
         }
     }

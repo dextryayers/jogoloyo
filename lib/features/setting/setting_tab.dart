@@ -52,7 +52,7 @@ class _State extends ConsumerState<SettingTab> {
         children: [
           const Text('Setting', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          const Text('Izin asli sistem. Minta, cek status, tes bunyi dan stop.',
+          const Text('Dua lapis pengingat. 10 menit sebelum bunyi notifikasi biasa. Saat jam tiba alarm berbunyi keras, getar, dan layar penuh ala panggilan masuk. Geser ke atas untuk berhenti.',
               style: TextStyle(color: JogloColors.muted)),
           const SizedBox(height: 12),
           Card(
@@ -166,7 +166,7 @@ class _State extends ConsumerState<SettingTab> {
                        ),
                      ],
                    ),
-                  const Text('Play bunyikan suara default. Stop hentikan seketika.',
+                  const Text('Play bunyikan suara default. Getar hanya getar tanpa bunyi. Stop hentikan seketika.',
                       style: TextStyle(fontSize: 12, color: JogloColors.muted)),
                 ],
               ),

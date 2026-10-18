@@ -9,6 +9,10 @@ import '../../core/alarm/alarm_service.dart';
 
 const appSlots = ['Pagi', 'Siang', 'Sore', 'Malam'];
 
+// Offset 10 menit: pengingat biasa tanpa bunyi.
+// Offset 0: alarm sungguhan dengan suara keras, getar, dan layar penuh.
+const alarmOffsets = [10, 0];
+
 Map<String, String> defaultSlotTimes() => {
       'Pagi': '06:00',
       'Siang': '12:00',
@@ -175,6 +179,9 @@ class SimpleStore {
     return wib.subtract(const Duration(hours: 7));
   }
 
+  // Offset 10 menit: pengingat biasa tanpa bunyi.
+  // Offset 0: alarm sungguhan dengan suara keras, getar, dan layar penuh.
+
   // Jadwalkan ulang semua yang aktif. Harian yang lewat digeser ke hari berikut.
   // Satu tembakan per pengingat dengan offset 0: bunyi tepat waktu plus getar.
   Future<({int scheduled, int cancelled})> rescheduleAll() async {
@@ -214,7 +221,7 @@ class SimpleStore {
          sessionId: r.id,
          profileId: 'me',
          startUtc: when,
-         offsets: const [0],
+         offsets: alarmOffsets,
          title: r.title.isEmpty ? 'Pengingat' : r.title,
          room: '',
          sound: r.sound,

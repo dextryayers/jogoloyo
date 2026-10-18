@@ -69,8 +69,10 @@ object AlarmStore {
         val s = ctx.getSharedPreferences(P, Context.MODE_PRIVATE)
         val base = "t_${key}_$off"
         val entry = entries(ctx).firstOrNull { it.key == key && it.off == off }
-        if (daily || (entry?.daily == true)) {
-            // Harian: geser trigger ke hari berikutnya dan simpan ulang.
+        val repeatNextDay = (daily || (entry?.daily == true)) && off == 0
+        if (repeatNextDay) {
+            // Harian: hanya alarm H-0 yang digeser ke besok. Pengingat H-10
+            // dihapus karena akan dibuat ulang bersama alarm besok.
             val trigger = (entry?.triggerAt ?: System.currentTimeMillis()) + 24L * 60 * 60 * 1000
             val title = entry?.title ?: ""
             val room = entry?.room ?: ""

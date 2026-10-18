@@ -72,7 +72,7 @@ class MainActivity : FlutterActivity() {
                     val vibrate = call.argument<Boolean>("vibrate") ?: true
                     if (kind == "urgent") {
                         AlarmSoundPlayer.play(this, sound, level, vibrate)
-                        NotificationHelper.show(this, "test", 10, "Tes Alarm", "Ruang A", urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
+                        NotificationHelper.show(this, "test", 0, "Tes Alarm", "Ruang A", urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
                     } else {
                         if (vibrate) AlarmSoundPlayer.vibrate(this, strong = false)
                         NotificationHelper.show(this, "test", 30, "Tes Alarm", "Ruang A", urgent = false, silent = false, vibrate = vibrate, sound = sound, level = level)
@@ -81,6 +81,7 @@ class MainActivity : FlutterActivity() {
                 }
                 "stopAlarmSound" -> {
                     AlarmSoundPlayer.stop(this)
+                    NotificationHelper.cancelAll(this, "test")
                     res.success(true)
                 }
                 "testVibrate" -> {

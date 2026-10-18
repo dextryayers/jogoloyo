@@ -17,20 +17,24 @@ class AlarmReceiver : BroadcastReceiver() {
         val level = intent.getIntExtra("level", 200)
         val vibrate = intent.getBooleanExtra("vibrate", true)
         val daily = intent.getBooleanExtra("daily", false)
-        val urgent = off <= 10
+        // Hanya H-0 yang alarm sungguhan: bunyi keras plus getar kuat dan layar penuh.
+        // Offset 10 menit hanya pengingat biasa tanpa bunyi.
+        val urgent = off == 0
         if (urgent) {
             AlarmSoundPlayer.play(ctx, sound, level, vibrate)
             NotificationHelper.show(ctx, key, off, title, room, urgent = true, silent = false, vibrate = vibrate, sound = sound, level = level)
         } else {
             if (vibrate) AlarmSoundPlayer.vibrate(ctx, strong = false)
-            NotificationHelper.show(ctx, key, off, title, room, urgent = false, silent = false, vibrate = vibrate, sound = sound, level = level)
+            NotificationHelper.show(ctx, key, off, title, room, urgent = false, silent = true, vibrate = vibrate, sound = sound, level = level)
         }
         AlarmStore.markFired(ctx, key, off, daily)
-        if (daily) {
-            val entry = AlarmStore.entries(ctx).firstOrNull { it.key == key && it.off == off }
-            val nextStartMillis = (entry?.triggerAt ?: System.currentTimeMillis()) + off * 60L * 1000L + 24L * 60 * 60 * 1000L
+        if (daily && off == 0) {
+            // Alarm harian: daftar ulang pengingat 10 menit dan alarm untuk besok.
+            val entry = AlarmStore.entries(ctx).firstOrNull { it.key == key && it.off == 0 }
+            val nextStartMillis = entry?.triggerAt
+                ?: (System.currentTimeMillis() + 24L * 60 * 60 * 1000L)
             AlarmScheduler.schedule(
-                ctx, key, Instant.ofEpochMilli(nextStartMillis).toString(), listOf(off),
+                ctx, key, Instant.ofEpochMilli(nextStartMillis).toString(), listOf(10, 0),
                 title, room, sound, level, vibrate, true
             )
         }
