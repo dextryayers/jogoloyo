@@ -6,12 +6,13 @@ import 'package:jogoloyo_les/main.dart';
 
 void main() {
   testWidgets('App tampil 4 tab bawah', (tester) async {
-    SharedPreferences.setMockInitialValues({
-      'onboarding_done': true,
-      'profil_done': true,
-      'notif_done': true,
-      'user_name': 'Ustazah Rina',
-    });
+     SharedPreferences.setMockInitialValues({
+       'onboarding_done': true,
+       'profil_done': true,
+       'notif_done': true,
+       'user_name': 'Ustazah Rina',
+       'app_version': '1.0.0+1',
+     });
     await tester.pumpWidget(
       const ProviderScope(child: JogoloyoApp()),
     );

@@ -19,12 +19,14 @@ class _State extends ConsumerState<NoteEditorPage> {
   final _body = TextEditingController();
   bool _ready = false;
   bool _saved = false;
+  String? _id;
   DateTime? _updated;
   int _words = 0;
 
   @override
   void initState() {
     super.initState();
+    _id = widget.noteId;
     _body.addListener(_count);
     _load();
   }
@@ -39,11 +41,12 @@ class _State extends ConsumerState<NoteEditorPage> {
     if (widget.noteId != null) {
       final all = await ref.read(simpleStoreProvider).loadNotes();
       final n = all.where((e) => e.id == widget.noteId).firstOrNull;
-      if (n != null) {
-        _title.text = n.title;
-        _body.text = n.body;
-        _updated = n.updatedAt;
-      } else {
+     if (n != null) {
+         _id = n.id;
+         _title.text = n.title;
+         _body.text = n.body;
+         _updated = n.updatedAt;
+       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Catatan tidak ditemukan. Mungkin sudah dihapus.')));
@@ -66,11 +69,13 @@ class _State extends ConsumerState<NoteEditorPage> {
   Future<void> _autoSave() async {
     if (_saved) return;
     if (_title.text.trim().isEmpty && _body.text.trim().isEmpty) return;
-    await ref.read(simpleStoreProvider).saveNote(
-          id: widget.noteId,
+    final nid = await ref.read(simpleStoreProvider).saveNote(
+          id: _id,
           title: _title.text,
           body: _body.text,
         );
+    _id = nid;
+    _updated = DateTime.now().toUtc();
     ref.invalidate(notesProvider);
   }
 
@@ -186,13 +191,15 @@ class _State extends ConsumerState<NoteEditorPage> {
                           content: Text('Isi dulu judul atau isinya.')));
                       return;
                     }
-                    await ref.read(simpleStoreProvider).saveNote(
-                          id: widget.noteId,
-                          title: _title.text,
-                          body: _body.text,
-                        );
-                    _saved = true;
-                    ref.invalidate(notesProvider);
+                     final nid = await ref.read(simpleStoreProvider).saveNote(
+                           id: _id,
+                           title: _title.text,
+                           body: _body.text,
+                         );
+                     _id = nid;
+                     _saved = true;
+                     _updated = DateTime.now().toUtc();
+                     ref.invalidate(notesProvider);
                     if (!context.mounted) return;
                     context.pop();
                     ScaffoldMessenger.of(context).showSnackBar(

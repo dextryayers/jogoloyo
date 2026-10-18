@@ -64,15 +64,15 @@ class _State extends State<NoteExportSheet> {
       final png = await image.toByteData(format: ui.ImageByteFormat.png);
       if (png == null) throw Exception('Gagal render gambar.');
       Uint8List bytes = png.buffer.asUint8List();
-      var name = 'jogoloyo_${DateTime.now().millisecondsSinceEpoch}';
-      if (_format != 'PNG') {
-        final dec = img.decodePng(bytes);
-        if (dec == null) throw Exception('Gagal encode gambar.');
-        bytes = img.encodeJpg(dec, quality: _jpgQuality);
-        name = '$name.jpg';
-      } else {
-        name = '$name.png';
-      }
+       var name = 'jogoloyo_${DateTime.now().millisecondsSinceEpoch}';
+       if (_format != 'PNG') {
+         final dec = img.decodePng(bytes);
+         if (dec == null) throw Exception('Gagal encode gambar.');
+         bytes = img.encodeJpg(dec, quality: _jpgQuality);
+         name = _format == 'JPEG' ? '$name.jpeg' : '$name.jpg';
+       } else {
+         name = '$name.png';
+       }
       final res = await ImageGallerySaverPlus.saveImage(bytes, quality: 100, name: name);
       final ok = (res is Map && res['isSuccess'] == true) || res != null;
       if (!mounted) return;

@@ -85,15 +85,15 @@ class _State extends ConsumerState<ReminderFormPage> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    final todayWib =
-                        DateTime.now().toUtc().add(const Duration(hours: 7));
-                    final today = DateTime(todayWib.year, todayWib.month, todayWib.day);
-                    final d = await showDatePicker(
-                      context: context,
-                      firstDate: today,
-                      lastDate: today.add(const Duration(days: 365)),
-                      initialDate: _day.isBefore(today) ? today : _day,
-                    );
+                     final todayWib =
+                         DateTime.now().toUtc().add(const Duration(hours: 7));
+                     final today = DateTime(todayWib.year, todayWib.month, todayWib.day);
+                     final d = await showDatePicker(
+                       context: context,
+                       firstDate: today.subtract(const Duration(days: 365)),
+                       lastDate: today.add(const Duration(days: 3650)),
+                       initialDate: _day.isBefore(today) ? today : _day,
+                     );
                     if (d != null) setState(() => _day = d);
                   },
                   icon: const Icon(Icons.calendar_month_outlined),
@@ -206,19 +206,14 @@ class _State extends ConsumerState<ReminderFormPage> {
                 final messenger = ScaffoldMessenger.of(context);
                  final wib = DateTime.utc(_day.year, _day.month, _day.day, _time.hour, _time.minute);
                  var utc = wib.subtract(const Duration(hours: 7));
-                final hm =
-                    '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}';
-                if (!_daily && !utc.isAfter(DateTime.now().toUtc())) {
-                  messenger.showSnackBar(SnackBar(
-                      content: Text(
-                          'Jam $hm WIB hari ini sudah lewat. Pilih jam berikutnya atau aktifkan harian.')));
-                  return;
-                }
-                if (!_enabled) {
-                  messenger.showSnackBar(const SnackBar(
-                      content: Text('Status mati. Nyalakan Aktif agar berbunyi.')));
-                  return;
-                }
+                 final hm =
+                     '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}';
+                 if (!_daily && !utc.isAfter(DateTime.now().toUtc())) {
+                   utc = utc.add(const Duration(days: 1));
+                   messenger.showSnackBar(SnackBar(
+                       content: Text(
+                           'Jam $hm WIB hari ini sudah lewat. Otomatis dijadwalkan besok.')));
+                 }
                 final id = widget.reminderId ?? const Uuid().v4();
                 await ref.read(simpleStoreProvider).upsertReminder(Reminder(
                       id: id,

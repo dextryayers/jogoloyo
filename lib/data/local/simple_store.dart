@@ -102,13 +102,17 @@ class SimpleStore {
   static const kReminders = 'reminders_v1';
   static const kNotes = 'notes_v1';
 
-  Future<List<Reminder>> loadReminders() async {
-    final p = await SharedPreferences.getInstance();
-    final raw = p.getString(kReminders);
-    if (raw == null) return [];
-    final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-    return list.map(Reminder.fromJson).toList();
-  }
+   Future<List<Reminder>> loadReminders() async {
+     final p = await SharedPreferences.getInstance();
+     final raw = p.getString(kReminders);
+     if (raw == null || raw.trim().isEmpty) return [];
+     try {
+       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+       return list.map(Reminder.fromJson).toList();
+     } catch (_) {
+       return [];
+     }
+   }
 
   Future<void> saveReminders(List<Reminder> items) async {
     final p = await SharedPreferences.getInstance();
@@ -224,18 +228,22 @@ class SimpleStore {
     return (scheduled: sch, cancelled: can);
   }
 
-  Future<List<Note>> loadNotes() async {
-    final p = await SharedPreferences.getInstance();
-    final raw = p.getString(kNotes);
-    if (raw == null) return [];
-    final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-    final notes = list.map(Note.fromJson).toList();
-    notes.sort((a, b) {
-      if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
-      return b.updatedAt.compareTo(a.updatedAt);
-    });
-    return notes;
-  }
+   Future<List<Note>> loadNotes() async {
+     final p = await SharedPreferences.getInstance();
+     final raw = p.getString(kNotes);
+     if (raw == null || raw.trim().isEmpty) return [];
+     try {
+       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+       final notes = list.map(Note.fromJson).toList();
+       notes.sort((a, b) {
+         if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+         return b.updatedAt.compareTo(a.updatedAt);
+       });
+       return notes;
+     } catch (_) {
+       return [];
+     }
+   }
 
   Future<void> togglePin(String id) async {
     final all = await loadNotes();
@@ -248,7 +256,7 @@ class SimpleStore {
     await p.setString(kNotes, jsonEncode(all.map((e) => e.toJson()).toList()));
   }
 
-  Future<void> saveNote({String? id, required String title, required String body}) async {
+  Future<String> saveNote({String? id, required String title, required String body}) async {
     final all = await loadNotes();
     final nid = id ?? const Uuid().v4();
     final i = all.indexWhere((e) => e.id == nid);
@@ -266,6 +274,7 @@ class SimpleStore {
     }
     final p = await SharedPreferences.getInstance();
     await p.setString(kNotes, jsonEncode(all.map((e) => e.toJson()).toList()));
+    return nid;
   }
 
   Future<void> deleteNote(String id) async {

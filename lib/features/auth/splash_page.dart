@@ -21,10 +21,18 @@ class _State extends State<SplashPage> {
 
   Future<void> _go() async {
     await Future.delayed(const Duration(seconds: 2));
-    final p = await SharedPreferences.getInstance();
-    final onb = p.getBool('onboarding_done') ?? false;
-    final prof = p.getBool('profil_done') ?? false;
-    final notif = p.getBool('notif_done') ?? false;
+     final p = await SharedPreferences.getInstance();
+     const ver = '1.0.0+1';
+     if (p.getString('app_version') != ver) {
+       await p.remove('onboarding_done');
+       await p.remove('profil_done');
+       await p.remove('notif_done');
+       await p.setString('app_version', ver);
+     }
+     final hasName = (p.getString('user_name') ?? '').trim().isNotEmpty;
+     final onb = (p.getBool('onboarding_done') ?? false);
+     final prof = (p.getBool('profil_done') ?? false) && hasName;
+     final notif = (p.getBool('notif_done') ?? false) && hasName;
     if (!mounted) return;
     if (!onb) {
       context.go('/onboarding');
